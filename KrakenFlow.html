@@ -72,6 +72,14 @@ body{font-size:12px}#g{grid-template-columns:210px 1fr 1fr!important;grid-templa
 .wrow{grid-template-rows:auto minmax(150px,1fr)}.wcol .tally b{font-size:20px}.card{padding:5px}}
 #donate{background:linear-gradient(135deg,#a970ff,#23d18b);color:#fff;font-weight:700;text-decoration:none;padding:4px 12px;border-radius:6px;box-shadow:0 0 10px #a970ff88;white-space:nowrap;font-size:13px}#donate:hover{box-shadow:0 0 18px #23d18bcc}
 header{gap:10px}header>span[style*="margin-left:auto"]{flex:1 1 0;min-width:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#rx{flex:0 0 auto;margin-top:6px;border-top:1px solid var(--bd);padding-top:5px;position:relative}
+#rx h4{margin:0;font-size:11px;color:var(--ac);letter-spacing:.08em;display:flex;justify-content:space-between;align-items:center}
+#rx .tag{white-space:nowrap}#rxc{width:100%;height:118px;display:block}#rxv{font:900 15px Segoe UI;white-space:nowrap;overflow:hidden;text-align:center;letter-spacing:.04em;margin-top:-2px;transition:color .4s,text-shadow .4s}
+#rxt{font-size:10px;text-align:center;color:var(--mu);min-height:13px}#rxl{margin-top:4px;font-size:10px}
+#rxlb{height:12px;border-radius:6px;background:#0d0b14;border:1px solid var(--bd);position:relative;overflow:hidden;margin-top:2px}
+#rxlb i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;transition:width .8s,background .8s,box-shadow .8s}
+@media(min-width:1401px) and (max-width:1800px){#rxc{height:104px}}@media(max-width:1400px){#rxc{height:110px}}
+#pos{display:flex;flex-direction:column}#posb{flex:1 1 auto;min-height:40px}
 </style></head><body>
 <div id="menu"><div class="mi" id="mFile"><span>File</span><div class="dd"><div id="miKeys">🔑 Keys…</div><div id="miDonate" onclick="window.open('https://www.gofundme.com/f/support-jeremys-bridge-to-ssdi','_blank','noopener')">💜 Help with release version…</div><div id="miPos">👁 Show / hide position panel</div></div></div><div class="mi" id="mView"><span>View</span><div class="dd"><div id="miMute">🔊 Toggle hype bubbles</div></div></div></div>
 <header><b>◆ KRAKEN FLOW</b><select id="sym"><option>XRP/USD</option><option>BTC/USD</option><option>ETH/USD</option><option>SOL/USD</option></select>
@@ -95,7 +103,8 @@ header{gap:10px}header>span[style*="margin-left:auto"]{flex:1 1 0;min-width:0;te
 <div class="p"><h3>Depth chart <span id="tgDepth"></span></h3><div class="why2" id="wyDepth"></div><canvas id="depth"></canvas></div>
 <div class="p"><h3>Imbalance (bid share) <span id="tgImb"></span></h3><div class="why2" id="wyImb"></div><div class="gauges"><div>±0.5% <span id="i05"></span><div class="bar"><i id="b05"></i></div></div><div>±1% <span id="i1"></span><div class="bar"><i id="b1"></i></div></div></div><canvas id="imb"></canvas><h3 style="margin-top:6px">Cumulative volume delta <span id="cvdv" class="st"></span> <span id="tgCvd"></span></h3><div class="why2" id="wyCvd"></div><canvas id="cvd"></canvas></div>
 <div class="p" id="tape"><h3>Trade tape <span id="tgTape"></span></h3><div class="why2" id="wyTape"></div><div id="tp" class="list"></div></div>
-<div class="p" id="pos"><h3>My position <span class="st" style="text-transform:none;letter-spacing:0">· read-only via local helper</span> <span id="tgPos"></span></h3><div id="posb" class="list"><div class="st">Connecting to position helper…</div></div></div>
+<div class="p" id="pos"><h3>My position <span class="st" style="text-transform:none;letter-spacing:0">· read-only via local helper</span> <span id="tgPos"></span></h3><div id="posb" class="list"><div class="st">Connecting to position helper…</div></div><div id="rx"><h4><span>⚛ LONG PRESSURE · 60s</span><span id="tgRx"></span></h4><canvas id="rxc"></canvas><div id="rxv" class="st">CHARGING…</div><div id="rxt"></div>
+<div id="rxl"><div style="display:flex;justify-content:space-between"><span class="st">☠ LIQ DISTANCE <span id="tgLiq"></span></span><span id="rxlt" class="st" style="text-align:right">—</span></div><div id="rxlb"><i></i></div></div></div></div>
 <div class="p" id="walls"><h3>Walls — what big orders are doing <span class="st" id="wcount"></span> <span id="tgWall"></span> <span id="tgTrust"></span></h3>
 <div id="verdict"><div id="vh">WARMING UP…</div><div id="vs" class="st">Watching the book for big orders (walls). Needs ~10s.</div></div>
 <div class="wrow">
@@ -297,7 +306,7 @@ function hypeTrade(t){const v=t.qty*t.price,buy=t.side==='buy';tSizes.push(v);if
  const P=prec[sym]||{p:4};if(buy)bubble('buy',pick(HYPE),`Market BUY ${usdK(v)} @ $${fmt(t.price,P.p)}`,6000);else bubble('warn',pick(WARN),`Market SELL ${usdK(v)} @ $${fmt(t.price,P.p)}`,12000)}
 
 // ===== MY POSITION (read-only, from local helper; keys never touch this page) =====
-const NOKEY='<div class="hd st">Add your Kraken API key (read-only) to see your position</div><div class="st" style="font-size:11px">File → Keys… (or copy .env.example to .env), with position_server.py running — Kraken Flow.bat starts it if Python is installed.</div>';async function posTick(){const el=$('posb');let d;try{const r=await fetch('http://127.0.0.1:8787/position',{cache:'no-store'});d=await r.json()}catch(e){el.innerHTML=NOKEY;$('tgPos').innerHTML='';return}
+const NOKEY='<div class="hd st">Add your Kraken API key (read-only) to see your position</div><div class="st" style="font-size:11px">File → Keys… (or copy .env.example to .env), with position_server.py running — Kraken Flow.bat starts it if Python is installed.</div>';let rxPos=null;async function posTick(){const el=$('posb');let d;rxPos=null;try{const r=await fetch('http://127.0.0.1:8787/position',{cache:'no-store'});d=await r.json();if(d&&d.ok&&d.positions){const ps=d.positions,b=sym.split('/')[0];rxPos=ps.find(x=>String(x.pair).includes(b))||ps[0]||'none'}}catch(e){el.innerHTML=NOKEY;$('tgPos').innerHTML='';return}
  if(d.nokeys){el.innerHTML=NOKEY;$('tgPos').innerHTML='';return}if(!d.ok){el.innerHTML=`<div class="hd bad">Position helper error</div><div class="st">${String(d.error).replace(/[<>&]/g,'')}</div>`;return}
  const $f=(v,n=2)=>v==null?'n/a':(+v).toLocaleString(undefined,{minimumFractionDigits:n,maximumFractionDigits:n}),A=d.account,kv=(k,v,c)=>`<div class="kv"><span>${k}</span><span style="${c?'color:'+c:''}">${v}</span></div>`;
  const ts=new Date(d.updated*1000).toLocaleTimeString();let h='';
@@ -310,6 +319,36 @@ const NOKEY='<div class="hd st">Add your Kraken API key (read-only) to see your 
  const ml=A.margin_level;h+=kv('Equity','$'+$f(A.equity))+kv('Free margin','$'+$f(A.free_margin))+kv('Margin level',ml==null?'n/a':$f(ml,0)+'%',ml==null?'':ml>150?'var(--bid)':ml>100?'#ffd166':'var(--ask)')+kv('Open orders',d.open_orders)+kv('Updated',ts);
  h+=`<div class="st" style="font-size:10px;margin-top:3px">Liquidation is an ${d.liq_note||'estimate'}. Read-only — no trading from this app.</div>`;el.innerHTML=h}
 posTick();setInterval(posTick,10000);
+// ===== LONG PRESSURE REACTOR (public trades 60s + own position liq distance; display only) =====
+(function(){const cv=$('rxc'),cx=cv.getContext('2d');let shown=.5,flare=0,lastBig=0,parts=[];
+function step(){const now=Date.now();let b=0,s=0,bigB=0;for(const[t,p,q,sd]of recentTr){if(now-t>60000)continue;const v=p*q;if(sd==='buy'){b+=v;if(t>lastBig&&v>=10000){bigB=Math.max(bigB,v);lastBig=t}}else s+=v}
+ const tot=b+s,share=tot?b/tot:.5;if(bigB){flare=1;for(let i=0;i<Math.min(40,8+bigB/2000);i++)parts.push({a:Math.PI*(1+share),r:0,v:1+Math.random()*3,o:(Math.random()-.5)*.6,l:1})}
+ shown+=(share-shown)*.06;flare*=.95;
+ const W=cv.clientWidth,H=cv.clientHeight,dpr=devicePixelRatio||1;if(cv.width!==W*dpr||cv.height!==H*dpr){cv.width=W*dpr;cv.height=H*dpr}cx.setTransform(dpr,0,0,dpr,0,0);cx.clearRect(0,0,W,H);
+ const ox=W/2,oy=H-4,R=Math.min(W/2-40,H-12),col=shown>.55?'#23d18b':shown<.45?'#ff4d6d':'#b9b2cc',pulse=.5+.5*Math.sin(now/260);
+ cx.lineCap='round';cx.lineWidth=14;cx.strokeStyle='#221a33';cx.beginPath();cx.arc(ox,oy,R,Math.PI,0);cx.stroke();
+ const g=cx.createLinearGradient(ox-R,0,ox+R,0);g.addColorStop(0,'#ff4d6d');g.addColorStop(.5,'#8a82a3');g.addColorStop(1,'#23d18b');
+ cx.globalAlpha=.25;cx.strokeStyle=g;cx.beginPath();cx.arc(ox,oy,R,Math.PI,0);cx.stroke();cx.globalAlpha=1;
+ const ang=Math.PI*(1+shown);cx.shadowColor=col;cx.shadowBlur=12+18*flare+6*pulse;cx.strokeStyle=col;cx.lineWidth=14;cx.beginPath();
+ if(shown>=.5)cx.arc(ox,oy,R,Math.PI*1.5,ang);else cx.arc(ox,oy,R,ang,Math.PI*1.5);cx.stroke();
+ for(let i=0;i<=10;i++){const a=Math.PI*(1+i/10);cx.shadowBlur=0;cx.strokeStyle=i===5?'#fff8':'#ffffff30';cx.lineWidth=2;cx.beginPath();cx.moveTo(ox+Math.cos(a)*(R-12),oy+Math.sin(a)*(R-12));cx.lineTo(ox+Math.cos(a)*(R-20),oy+Math.sin(a)*(R-20));cx.stroke()}
+ cx.shadowColor=col;cx.shadowBlur=16+20*flare;cx.strokeStyle='#fff';cx.lineWidth=3;cx.beginPath();cx.moveTo(ox,oy);cx.lineTo(ox+Math.cos(ang)*(R-6),oy+Math.sin(ang)*(R-6));cx.stroke();
+ cx.fillStyle=col;cx.beginPath();cx.arc(ox,oy,6+3*pulse+6*flare,0,7);cx.fill();
+ parts=parts.filter(p=>(p.l-=.02)>0);for(const p of parts){p.r+=p.v;const a=p.a+p.o,rr=R-6+p.r;cx.globalAlpha=p.l;cx.fillStyle='#23d18b';cx.beginPath();cx.arc(ox+Math.cos(a)*rr,oy+Math.sin(a)*rr,2,0,7);cx.fill()}cx.globalAlpha=1;
+ cx.shadowBlur=8;cx.font='900 '+Math.round(R*.42)+'px Consolas,monospace';cx.textAlign='center';cx.fillStyle=col;cx.fillText(tot?Math.round(shown*100)+'%':'—',ox,oy-R*.32);
+ cx.shadowBlur=0;cx.font='10px Segoe UI';cx.fillStyle='#ff4d6d';cx.textAlign='left';cx.fillText('SELL '+(tot?usdK(s):'—'),2,10);cx.fillStyle='#23d18b';cx.textAlign='right';cx.fillText('BUY '+(tot?usdK(b):'—'),W-2,10);
+ if(!(now%4)){}requestAnimationFrame(step);step.b=b;step.s=s;step.tot=tot;step.share=share}
+function text(){const{tot,share,b,s}=step;let v,t,k;if(!tot){v='CHARGING…';t='waiting for trades in the last 60s';k='N'}
+ else if(share>=.7){v='🐂 BULLS IN CONTROL';t='buyers slamming the ask — longs eating';k='G'}else if(share>=.55){v='BULLS PUSHING';t='more market buys than sells — tailwind for longs';k='G'}
+ else if(share>.45){v='TUG OF WAR';t='nobody in charge — chop zone';k='N'}else if(share>.3){v='BEARS PRESSING';t='sellers hitting bids — careful, longs';k='B'}else{v='🩸 BEARS DUMPING';t='heavy market selling — longs getting cooked';k='B'}
+ const c=k==='G'?'#23d18b':k==='B'?'#ff4d6d':'#b9b2cc';$('rxv').textContent=v;$('rxv').style.color=c;$('rxv').style.textShadow='0 0 12px '+c;$('rxt').textContent=tot?t:t;$('tgRx').innerHTML=tagH(k);
+ const bar=$('rxlb').firstChild,p=rxPos;
+ if(!p||p==='none'||!p.liq_est||!p.price){bar.style.width='0';$('rxlt').textContent=p==='none'?'no open position':p?'liq n/a':'add keys to see liq';$('tgLiq').innerHTML=tagH('N');return}
+ const d=Math.abs(p.price-p.liq_est)/p.price*100,f=Math.min(1,d/50),hue=Math.round(120*f),cc=`hsl(${hue},85%,55%)`,kk=d>25?'G':d>10?'N':'B';
+ bar.style.width=Math.max(4,f*100)+'%';bar.style.background=`linear-gradient(90deg,#ff4d6d,${cc})`;bar.style.boxShadow='0 0 10px '+cc;
+ $('rxlt').innerHTML=`<span style="color:${cc};font-weight:700">${d.toFixed(1)}% from liq${kk==='B'?' ☠ DANGER':kk==='G'?' · safe-ish':''}</span>`;$('tgLiq').innerHTML=tagH(kk)}
+requestAnimationFrame(step);setInterval(text,1000)})();
+
 
 // ===== KEYS: first-run setup + File > Keys (keys go ONLY to the local helper on 127.0.0.1) =====
 const HELP='http://127.0.0.1:8787';
