@@ -14,12 +14,12 @@ header b{color:var(--ac);font-size:16px}select{background:var(--pn);color:var(--
 #tape .r,#big .r{font:12px Consolas,monospace;display:flex;justify-content:space-between}
 .list{overflow:auto;flex:1}.gauges{display:flex;gap:10px}.gauges>div{flex:1;text-align:center}
 .bar{height:14px;background:var(--ask);border-radius:7px;overflow:hidden}.bar i{display:block;height:100%;background:var(--bid)}
-@media(max-width:1800px){#g{grid-template-columns:260px 1fr 300px;grid-template-rows:repeat(3,48vh);height:auto}#tape{grid-row:auto}#lad{grid-area:1/1/3/2}#tape{grid-area:1/4/2/5}#walls{grid-area:2/2/3/4}}
+
 @media(max-width:1100px){#g{grid-template-columns:1fr;grid-template-rows:none;grid-auto-rows:420px}#lad,#tape{grid-area:auto}}
 .wrow{display:flex;gap:8px;flex:1;min-height:0}#wmap{flex:1 1 0;width:0;min-width:0}.wside{flex:0 0 30%;display:flex;flex-direction:column;min-height:0}
 .sr{display:flex;gap:6px;align-items:center;font:12px Consolas,monospace}#wfeed .r{font:12px Consolas,monospace;padding:2px 0;border-bottom:1px solid #2a214060;animation:fl 1.2s}
 @keyframes fl{from{background:#a970ff55}to{background:transparent}}
-@media(max-width:1800px){#walls{grid-area:auto;grid-column:1/-1;height:60vh}.wside{flex-basis:300px}}
+
 @media(max-width:1100px){.wrow{flex-direction:column}#wmap{flex:1;min-height:300px}.wside,.wcol{flex:1}}
 #verdict{border-radius:8px;padding:8px 12px;margin-bottom:8px;border:2px solid #555;background:#1d1828}#vh{font-size:28px;font-weight:800;letter-spacing:.02em}#vs{font-size:14px;margin-top:2px;color:var(--tx)}
 .wcol{flex:0 0 34%;display:flex;flex-direction:column;min-height:0;overflow:auto}.cards{display:flex;gap:8px}.card{flex:1;border-radius:8px;padding:8px;background:#0d0b14;border:2px solid var(--bd)}
@@ -63,6 +63,13 @@ body{font-size:12px}#g{grid-template-columns:210px 1fr 1fr!important;grid-templa
 .dlg .btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.dlg button{background:#0d0b14;color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:7px 14px;cursor:pointer}
 .dlg button.pr{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:700}.note{background:#ffd16614;border:1px solid #ffd16655;border-radius:8px;padding:8px;font-size:12px;margin-top:10px}
 #kmsg{min-height:18px;margin-top:8px;font-weight:600}
+@media(min-width:1401px) and (max-width:1800px){
+#g{grid-template-columns:220px minmax(0,1fr) minmax(0,1fr) 270px;grid-template-rows:max(260px,calc((100vh - 330px)*.38)) max(520px,calc((100vh - 330px)*.62))}#bigp{max-height:70px}
+.wrow{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+.wcol{grid-column:1;overflow:visible}#wmap{grid-column:2;width:100%!important;height:100%;min-height:240px}.wside{grid-column:1/3;min-height:140px}
+#vh{font-size:22px}.cp{font-size:20px}.tally b{font-size:24px}#wfeed .r{font-size:12px}
+#chips{flex-basis:100%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.chip{max-width:none;padding:2px 6px}#ls{flex-wrap:wrap;padding:6px 10px}#lsn{font-size:38px}#lsv{font-size:20px}
+.wrow{grid-template-rows:auto minmax(150px,1fr)}.wcol .tally b{font-size:20px}.card{padding:5px}}
 </style></head><body>
 <div id="menu"><div class="mi" id="mFile"><span>File</span><div class="dd"><div id="miKeys">🔑 Keys…</div><div id="miPos">👁 Show / hide position panel</div></div></div><div class="mi" id="mView"><span>View</span><div class="dd"><div id="miMute">🔊 Toggle hype bubbles</div></div></div></div>
 <header><b>◆ KRAKEN FLOW</b><select id="sym"><option>XRP/USD</option><option>BTC/USD</option><option>ETH/USD</option><option>SOL/USD</option></select>
