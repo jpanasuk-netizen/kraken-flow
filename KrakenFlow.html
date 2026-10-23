@@ -1,0 +1,256 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Kraken Flow</title>
+<style>
+:root{--bg:#0d0b14;--pn:#16121f;--bd:#2a2140;--tx:#e6e1f2;--mu:#8a82a3;--ac:#a970ff;--bid:#23d18b;--ask:#ff4d6d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.3 Segoe UI,system-ui,sans-serif}
+header{display:flex;gap:16px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--bd)}
+header b{color:var(--ac);font-size:16px}select{background:var(--pn);color:var(--tx);border:1px solid var(--ac);padding:4px 8px;border-radius:6px}
+.st{color:var(--mu)}.ok{color:var(--bid)}.bad{color:var(--ask)}
+#g{display:grid;gap:8px;padding:8px;grid-template-columns:330px 1fr 1fr 360px;grid-template-rows:calc(33vh - 40px) calc(48vh - 40px)}
+.p{background:var(--pn);border:1px solid var(--bd);border-radius:8px;padding:8px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.p h3{margin:0 0 6px;font-size:12px;color:var(--ac);text-transform:uppercase;letter-spacing:.06em}
+.p canvas{flex:1;width:100%;min-height:0}
+#lad{grid-area:1/1/3/2}#tape{grid-area:1/4/3/5}#walls{grid-area:2/2/3/4}#lad div.r{display:flex;justify-content:space-between;font:12px Consolas,monospace;padding:0 4px;position:relative}
+#lad .r i{position:absolute;top:0;bottom:0;right:0;opacity:.18}
+#tape .r,#big .r{font:12px Consolas,monospace;display:flex;justify-content:space-between}
+.list{overflow:auto;flex:1}.gauges{display:flex;gap:10px}.gauges>div{flex:1;text-align:center}
+.bar{height:14px;background:var(--ask);border-radius:7px;overflow:hidden}.bar i{display:block;height:100%;background:var(--bid)}
+@media(max-width:1800px){#g{grid-template-columns:260px 1fr 300px;grid-template-rows:repeat(3,48vh);height:auto}#tape{grid-row:auto}#lad{grid-area:1/1/3/2}#tape{grid-area:1/4/3/5}#walls{grid-area:2/2/3/4}}
+@media(max-width:1100px){#g{grid-template-columns:1fr;grid-template-rows:none;grid-auto-rows:420px}#lad,#tape{grid-area:auto}}
+.wrow{display:flex;gap:8px;flex:1;min-height:0}#wmap{flex:1 1 0;width:0;min-width:0}.wside{flex:0 0 30%;display:flex;flex-direction:column;min-height:0}
+.sr{display:flex;gap:6px;align-items:center;font:12px Consolas,monospace}#wfeed .r{font:12px Consolas,monospace;padding:2px 0;border-bottom:1px solid #2a214060;animation:fl 1.2s}
+@keyframes fl{from{background:#a970ff55}to{background:transparent}}
+@media(max-width:1800px){#walls{grid-area:auto;grid-column:1/-1;height:60vh}.wside{flex-basis:300px}}
+@media(max-width:1100px){.wrow{flex-direction:column}#wmap{flex:1;min-height:300px}.wside,.wcol{flex:1}}
+#verdict{border-radius:8px;padding:8px 12px;margin-bottom:8px;border:2px solid #555;background:#1d1828}#vh{font-size:28px;font-weight:800;letter-spacing:.02em}#vs{font-size:14px;margin-top:2px;color:var(--tx)}
+.wcol{flex:0 0 34%;display:flex;flex-direction:column;min-height:0;overflow:auto}.cards{display:flex;gap:8px}.card{flex:1;border-radius:8px;padding:8px;background:#0d0b14;border:2px solid var(--bd)}
+#cFloor{border-color:#23d18b88}#cCeil{border-color:#ff4d6d88}.cl{font-size:11px;color:var(--mu)}.cp{font:700 24px Consolas,monospace}.cm{font-size:13px}.cs{font-weight:800;font-size:15px;margin-top:2px}
+.tally{display:flex;gap:8px;margin-top:8px}.tally>div{flex:1;text-align:center;background:#0d0b14;border-radius:8px;padding:4px}.tally b{display:block;font-size:30px;line-height:1}.tally small{color:var(--mu)}.ti{font-size:16px}
+#wfeed .r{font-size:13px;padding:4px 2px}#wfeed .why{color:var(--mu);font-size:11px;display:block}
+.tag{display:inline-block;font:700 10px Segoe UI;padding:1px 6px;border-radius:9px;margin-left:6px;vertical-align:middle;text-transform:none;letter-spacing:0}
+.tg{background:#23d18b33;color:#23d18b;border:1px solid #23d18b}.tb{background:#ff4d6d33;color:#ff4d6d;border:1px solid #ff4d6d}.tn{background:#8a82a333;color:#b9b2cc;border:1px solid #8a82a3}
+#ls{display:flex;gap:14px;align-items:center;margin:8px 8px 0;padding:8px 12px;background:var(--pn);border:2px solid var(--bd);border-radius:10px}
+#lsn{font:900 46px Consolas,monospace;min-width:90px;text-align:center;line-height:1}#lsm{width:260px;height:20px;border-radius:10px;background:linear-gradient(90deg,#ff4d6d,#8a82a3 50%,#23d18b);position:relative}
+#lsm i{position:absolute;top:-5px;width:6px;height:30px;background:#fff;border-radius:3px;box-shadow:0 0 10px #fff;transition:left .6s}#lsv{font-size:24px;font-weight:800}#lss{font-size:12px}
+#chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;justify-content:flex-end}.chip{background:#0d0b14;border-radius:8px;padding:4px 8px;font-size:12px;max-width:300px;border:1px solid var(--bd)}.chip b{display:block;font-size:11px;color:var(--mu)}.chip .w{color:var(--tx);font-size:11px}
+.why2{font-size:11px;color:var(--tx);margin:-2px 0 4px}
+#bub{position:fixed;right:24px;top:70px;display:flex;flex-direction:column;gap:10px;z-index:99;pointer-events:none;align-items:flex-end}
+.bb{pointer-events:none;font:900 26px Segoe UI;padding:14px 22px;border-radius:22px;color:#fff;max-width:620px;animation:bin .35s cubic-bezier(.2,1.6,.4,1),bout .5s 3.5s forwards}
+.bb small{display:block;font-size:13px;font-weight:600;opacity:.85}.bg{background:linear-gradient(135deg,#0f6b48,#23d18b);box-shadow:0 0 30px #23d18baa}.bw{background:linear-gradient(135deg,#6b0f22,#ff4d6d);box-shadow:0 0 30px #ff4d6daa}.bp{background:linear-gradient(135deg,#4a1f8a,#a970ff);box-shadow:0 0 30px #a970ffaa}
+@keyframes bin{from{transform:scale(.3) translateX(80px);opacity:0}to{transform:none;opacity:1}}@keyframes bout{to{transform:translateY(-30px) scale(.9);opacity:0}}
+#mute{background:var(--pn);color:var(--tx);border:1px solid var(--ac);border-radius:6px;padding:4px 10px;cursor:pointer}
+@media(max-width:1400px){
+body{font-size:12px}#g{grid-template-columns:210px 1fr 1fr!important;grid-template-rows:42vh auto!important;height:auto}
+#lad{grid-area:1/1/2/2!important}#tape{grid-area:2/1/3/2!important}#walls{grid-area:2/2/3/4!important;height:auto!important;min-height:0}
+#tape .list{max-height:60vh}
+.wrow{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 240px;flex-direction:initial!important}
+.wcol{grid-column:1;overflow:visible}#wmap{grid-column:2;width:100%!important;height:100%;min-height:260px}.wside{grid-column:1/3;max-height:240px}
+#vh{font-size:20px}#vs{font-size:12px}.cp{font-size:18px}.cm{font-size:11px}.cs{font-size:12px}.tally b{font-size:22px}.card{padding:6px;min-width:0}
+#wfeed .r{font-size:11px;padding:2px}.why2{font-size:10px}
+#ls{flex-wrap:wrap;gap:8px}#lsn{font-size:36px;min-width:60px}#lsm{width:180px}#lsv{font-size:18px}
+#chips{flex-basis:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.chip{max-width:none;font-size:11px;padding:3px 6px}
+.bb{font-size:20px;max-width:420px}#bigp{width:auto;max-height:20vh}}
+</style></head><body>
+<header><b>◆ KRAKEN FLOW</b><select id="sym"><option>XRP/USD</option><option>BTC/USD</option><option>ETH/USD</option><option>SOL/USD</option></select>
+<span id="px" style="font-size:18px">—</span><span class="st" id="stat">connecting…</span><span class="st" id="ck"></span>
+<button id="mute">🔊 Hype bubbles ON</button><span class="st" style="margin-left:auto">public data only · wss://ws.kraken.com/v2 · read-only</span></header>
+<div id="ls"><div><div class="st" style="font-size:11px">LONG SCORE</div><div id="lsn">—</div></div><div><div id="lsm"><i id="lsk" style="left:50%"></i></div><div class="st" style="font-size:10px;display:flex;justify-content:space-between"><span>0 bears</span><span>50</span><span>bulls 100</span></div></div>
+<div><div id="lsv">WARMING UP…</div><div id="lss" class="st">Order-book read only — not a trade signal. This app never places orders.</div></div><div id="chips"></div></div>
+<div id="bub"></div><div id="g">
+<div class="p" id="lad"><h3>Order book ladder <span id="tgSpr"></span></h3><div class="why2" id="wySpr"></div><div id="ladder" class="list"></div></div>
+<div class="p"><h3>Depth chart <span id="tgDepth"></span></h3><div class="why2" id="wyDepth"></div><canvas id="depth"></canvas></div>
+<div class="p"><h3>Imbalance (bid share) <span id="tgImb"></span></h3><div class="why2" id="wyImb"></div><div class="gauges"><div>±0.5% <span id="i05"></span><div class="bar"><i id="b05"></i></div></div><div>±1% <span id="i1"></span><div class="bar"><i id="b1"></i></div></div></div><canvas id="imb"></canvas><h3 style="margin-top:6px">Cumulative volume delta <span id="cvdv" class="st"></span> <span id="tgCvd"></span></h3><div class="why2" id="wyCvd"></div><canvas id="cvd"></canvas></div>
+<div class="p" id="tape"><h3>Trade tape <span id="tgTape"></span></h3><div class="why2" id="wyTape"></div><div id="tp" class="list"></div></div>
+<div class="p" id="walls"><h3>Walls — what big orders are doing <span class="st" id="wcount"></span> <span id="tgWall"></span> <span id="tgTrust"></span></h3>
+<div id="verdict"><div id="vh">WARMING UP…</div><div id="vs" class="st">Watching the book for big orders (walls). Needs ~10s.</div></div>
+<div class="wrow">
+<div class="wcol"><div class="cards"><div class="card" id="cFloor"><div class="cl">🟢 FLOOR · biggest bid wall</div><div class="cp" id="fP">—</div><div class="cm" id="fM"></div><div class="cs" id="fS"></div></div>
+<div class="card" id="cCeil"><div class="cl">🔴 CEILING · biggest ask wall</div><div class="cp" id="cP">—</div><div class="cm" id="cM"></div><div class="cs" id="cS"></div></div></div>
+<div class="tally"><div><span class="ti">➕</span><b id="tA">0</b><small>added</small></div><div><span class="ti">✖</span><b id="tP">0</b><small>pulled</small></div><div><span class="ti">🍽️</span><b id="tE">0</b><small>eaten*</small></div></div>
+<div class="st" style="font-size:11px;margin-top:6px">TRUST METER — do walls stay or vanish? (last 5 min)</div><div class="bar" style="height:16px;background:#ff9ad5"><i id="trb" style="background:var(--bid)"></i></div><div id="trt" style="font-weight:600;margin-top:2px"></div>
+<div class="st" style="font-size:11px;margin-top:6px">SUPPORT vs RESISTANCE $ (±0.6%)</div><div class="sr"><span id="sup" style="color:var(--bid)"></span><div class="bar" style="flex:1;height:14px"><i id="srb"></i></div><span id="res" style="color:var(--ask)"></span></div>
+<div class="st" style="font-size:10px;margin-top:4px">* eaten / fake are estimates from public book + trades</div></div>
+<canvas id="wmap"></canvas>
+<div class="wside"><div class="st" style="font-size:11px">WHAT JUST HAPPENED (newest on top)</div><div id="wfeed" class="list"></div></div></div></div>
+</div>
+<div class="p" id="bigp" style="margin:0 8px 8px"><h3>Big prints <span id="tgBig"></span></h3><div class="why2" id="wyBig"></div><div id="big" class="list" style="max-height:22vh"></div></div>
+<script>
+const $=id=>document.getElementById(id);
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c}return s=>{let c=~0;for(let i=0;i<s.length;i++)c=t[(c^s.charCodeAt(i))&255]^(c>>>8);return(~c)>>>0}})();
+let ws,sym=localStorage.sym||'XRP/USD',prec={},bids=new Map(),asks=new Map(),imbH=[],cvdH=[],cvd=0,heat=[],tapeN=0,lastBig=new Map(),avgQ=0,resyncs=0;
+$('sym').value=sym;$('sym').onchange=e=>{sym=e.target.value;localStorage.sym=sym;start()};
+function fmt(v,p){return v.toFixed(p)}
+function ckStr(v,p){return fmt(v,p).replace('.','').replace(/^0+/,'')}
+function sorted(){const b=[...bids].sort((a,c)=>c[0]-a[0]),a=[...asks].sort((x,y)=>x[0]-y[0]);return[b,a]}
+function verify(cs){const[b,a]=sorted();const P=prec[sym];if(!P)return true;let s='';for(const[p,q]of a.slice(0,10))s+=ckStr(p,P.p)+ckStr(q,P.q);for(const[p,q]of b.slice(0,10))s+=ckStr(p,P.p)+ckStr(q,P.q);return CRC(s)===cs}
+function apply(side,lv){const m=side==='b'?bids:asks;for(const{price,qty}of lv){const old=m.get(price)||0;if(qty===0)m.delete(price);else m.set(price,qty);wallCheck(side,price,old,qty)}}
+function trim(){const[b,a]=sorted();bids=new Map(b.slice(0,100));asks=new Map(a.slice(0,100))}
+function wallCheck(side,p,o,q){return;if(!avgQ)return;const d=q-o,th=avgQ*12;if(Math.abs(d)>th){const mid=midP(),k=side+p+(d>0),now=Date.now();if((lastBig.get(k)||0)>now-30000)return;lastBig.set(k,now);if(mid&&Math.abs(p-mid)/mid<0.005)ev(`${d>0?'WALL ADDED':'WALL PULLED'} ${side==='b'?'bid':'ask'} ${fmt(p,prec[sym]?.p||4)} ${d>0?'+':''}${d.toFixed(0)}`,d>0?(side==='b'?'var(--bid)':'var(--ask)'):'var(--ac)')}}
+function midP(){const[b,a]=sorted();return b[0]&&a[0]?(b[0][0]+a[0][0])/2:0}
+function ev(t,c){const d=document.createElement('div');d.className='r';d.innerHTML=`<span style="color:${c}">${t}</span><span class="st">${new Date().toLocaleTimeString()}</span>`;$('big').prepend(d);while($('big').children.length>200)$('big').lastChild.remove()}
+function start(){if(ws){ws.onclose=null;ws.close()}bids.clear();asks.clear();imbH=[];cvdH=[];cvd=0;heat=[];avgQ=0;walls.clear();wHist=[];added=[];tSizes=[];lsE=null;heldT.clear();startT=Date.now();midH=[];$('wfeed').innerHTML='';$('tp').innerHTML='';
+ ws=new WebSocket('wss://ws.kraken.com/v2');$('stat').textContent='connecting…';$('stat').className='st';
+ ws.onopen=()=>{$('stat').textContent='live';$('stat').className='ok';
+  ws.send(JSON.stringify({method:'subscribe',params:{channel:'instrument',snapshot:true}}));
+  ws.send(JSON.stringify({method:'subscribe',params:{channel:'book',symbol:[sym],depth:100}}));
+  ws.send(JSON.stringify({method:'subscribe',params:{channel:'trade',symbol:[sym],snapshot:false}}))};
+ ws.onclose=()=>{$('stat').textContent='disconnected — reconnecting';$('stat').className='bad';setTimeout(start,2000)};
+ ws.onerror=()=>ws.close();
+ ws.onmessage=e=>{const m=JSON.parse(e.data);
+  if(m.channel==='instrument'&&m.data?.pairs){for(const p of m.data.pairs)prec[p.symbol]={p:p.price_precision,q:p.qty_precision}}
+  else if(m.channel==='book'){const d=m.data[0];if(m.type==='snapshot'){bids.clear();asks.clear()}
+   apply('b',d.bids||[]);apply('a',d.asks||[]);trim();
+   if(m.type==='snapshot'){const all=[...bids.values(),...asks.values()];avgQ=all.reduce((s,x)=>s+x,0)/all.length}
+   if(!verify(d.checksum)){resyncs++;$('ck').textContent=`checksum MISMATCH → resync (${resyncs})`;$('ck').className='bad';
+    ws.send(JSON.stringify({method:'unsubscribe',params:{channel:'book',symbol:[sym],depth:100}}));
+    setTimeout(()=>ws.send(JSON.stringify({method:'subscribe',params:{channel:'book',symbol:[sym],depth:100}})),300)}
+   else{$('ck').textContent=`checksum ✓ (resyncs ${resyncs})`;$('ck').className='ok'}}
+  else if(m.channel==='trade'&&m.type==='update'){for(const t of m.data)trade(t)}}}
+function trade(t){hypeTrade(t);const v=t.qty*t.price,buy=t.side==='buy';recentTr.push([Date.now(),t.price,t.qty,t.side]);if(recentTr.length>5000)recentTr.shift();cvd+=buy?t.qty:-t.qty;const P=prec[sym]||{p:4};
+ $('px').textContent=fmt(t.price,P.p);$('px').style.color=buy?'var(--bid)':'var(--ask)';
+ const d=document.createElement('div');d.className='r';d.style.color=buy?'var(--bid)':'var(--ask)';
+ d.innerHTML=`<span>${buy?'BUY ':'SELL'} ${fmt(t.price,P.p)}</span><span>${t.qty.toFixed(2)}</span><span class="st">$${v.toFixed(0)}</span>`;$('tp').prepend(d);while($('tp').children.length>300)$('tp').lastChild.remove();
+ const big=sym.startsWith('BTC')?100000:25000;if(v>=big)ev(`BIG ${buy?'BUY':'SELL'} $${(v/1e3).toFixed(1)}K @ ${fmt(t.price,P.p)} (${t.qty.toFixed(2)})`,buy?'var(--bid)':'var(--ask)')}
+function within(pct){const mid=midP();let b=0,a=0;for(const[p,q]of bids)if(p>=mid*(1-pct))b+=q;for(const[p,q]of asks)if(p<=mid*(1+pct))a+=q;return b+a?b/(b+a):.5}
+function cv(id){const c=$(id),r=c.getBoundingClientRect();c.width=r.width*devicePixelRatio;c.height=r.height*devicePixelRatio;const x=c.getContext('2d');x.scale(devicePixelRatio,devicePixelRatio);return[x,r.width,r.height]}
+function line(id,arr,lo,hi,col,zero){const[x,w,h]=cv(id);if(arr.length<2)return;if(zero!=null){x.strokeStyle='#2a2140';const y=h-(zero-lo)/(hi-lo||1)*h;x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke()}
+ x.strokeStyle=col;x.lineWidth=1.6;x.beginPath();arr.forEach((v,i)=>{const X=i/(arr.length-1)*w,Y=h-(v-lo)/(hi-lo||1)*h;i?x.lineTo(X,Y):x.moveTo(X,Y)});x.stroke()}
+function render(){if(!bids.size){requestAnimationFrame(render);return}const P=prec[sym]||{p:4,q:2};const[b,a]=sorted();
+ // ladder
+ const n=Math.floor(($('ladder').clientHeight||600)/16/2),mx=Math.max(...b.slice(0,n).map(x=>x[1]),...a.slice(0,n).map(x=>x[1]));
+ let h='';for(const[p,q]of a.slice(0,n).reverse())h+=`<div class="r" style="color:var(--ask)"><i style="width:${q/mx*100}%;background:var(--ask)"></i><span>${fmt(p,P.p)}</span><span>${q.toFixed(P.q>2?2:P.q)}</span></div>`;
+ h+=`<div class="r" style="color:var(--ac);border-top:1px solid var(--bd);border-bottom:1px solid var(--bd)"><span>spread ${fmt(a[0][0]-b[0][0],P.p)}</span><span>mid ${fmt(midP(),P.p+1)}</span></div>`;
+ for(const[p,q]of b.slice(0,n))h+=`<div class="r" style="color:var(--bid)"><i style="width:${q/mx*100}%;background:var(--bid)"></i><span>${fmt(p,P.p)}</span><span>${q.toFixed(P.q>2?2:P.q)}</span></div>`;$('ladder').innerHTML=h;
+ // depth
+ {const[x,w,H]=cv('depth');const lo=b[b.length-1][0],hi=a[a.length-1][0];let cb=[],s=0;for(const[p,q]of b){s+=q;cb.push([p,s])}let ca=[],t=0;for(const[p,q]of a){t+=q;ca.push([p,t])}const M=Math.max(s,t);
+  const X=p=>(p-lo)/(hi-lo)*w,Y=v=>H-v/M*(H-14);for(const[arr,col]of[[cb,'35,209,139'],[ca,'255,77,109']]){x.fillStyle=`rgba(${col},.25)`;x.strokeStyle=`rgb(${col})`;x.beginPath();x.moveTo(X(arr[0][0]),H);arr.forEach(([p,v])=>x.lineTo(X(p),Y(v)));x.lineTo(X(arr[arr.length-1][0]),H);x.fill();x.stroke()}
+  x.fillStyle='#8a82a3';x.font='11px Consolas';x.fillText(fmt(lo,P.p),2,H-2);x.fillText(fmt(hi,P.p),w-60,H-2);x.fillStyle='#a970ff';x.fillText(fmt(midP(),P.p),w/2-25,12)}
+ // imbalance
+ const i05=within(.005),i1=within(.01);$('i05').textContent=(i05*100).toFixed(1)+'%';$('i1').textContent=(i1*100).toFixed(1)+'%';$('b05').style.width=i05*100+'%';$('b1').style.width=i1*100+'%';
+ line('imb',imbH.map(v=>v[0]),0,1,'#a970ff',.5);{const c=$('imb').getContext('2d');}line2('imb',imbH.map(v=>v[1]));
+ // cvd
+ const cv_=cvdH.concat([cvd]);line('cvd',cv_,Math.min(0,...cv_),Math.max(0,...cv_),cvd>=0?'#23d18b':'#ff4d6d',0);$('cvdv').textContent=cvd.toFixed(1);
+ drawWalls();
+ requestAnimationFrame(render)}
+function line2(id,arr){if(arr.length<2)return;const c=$(id),x=c.getContext('2d'),w=c.width/devicePixelRatio,h=c.height/devicePixelRatio;x.strokeStyle='#ff9ad5';x.lineWidth=1;x.beginPath();arr.forEach((v,i)=>{const X=i/(arr.length-1)*w,Y=h-v*h;i?x.lineTo(X,Y):x.moveTo(X,Y)});x.stroke();x.fillStyle='#8a82a3';x.fillText('purple ±0.5% · pink ±1% · line=50%',4,12)}
+setInterval(()=>{if(!bids.size)return;imbH.push([within(.005),within(.01)]);if(imbH.length>600)imbH.shift();cvdH.push(cvd);if(cvdH.length>600)cvdH.shift();
+ const mid=midP(),col=new Array(60).fill(0);for(const m of[bids,asks])for(const[p,q]of m){const j=Math.floor(((p-mid)/mid+.01)/.02*60);if(j>=0&&j<60)col[j]+=q}heat.push(col);if(heat.length>240)heat.shift()},1000);
+
+// ===== WALL ENGINE (public book + trades only) =====
+let added=[],walls=new Map(),wHist=[],midH=[],recentTr=[];const TL=300000,RNG=0.006;
+const usdK=v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+(v/1e3).toFixed(0)+'K';
+function wfeed(icon,txt,col,why){const d=document.createElement('div');d.className='r';d.innerHTML=`<span class="st">${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'})}</span> <span style="color:${col};font-weight:600">${icon} ${txt}</span><span class="why">→ ${why||''}</span>`;$('wfeed').prepend(d);while($('wfeed').children.length>8)$('wfeed').lastChild.remove()}
+function scanWalls(){if(!bids.size||!avgQ)return;const mid=midP(),now=Date.now(),P=prec[sym]||{p:4};const all=[...bids.values(),...asks.values()].sort((a,b)=>a-b);
+ const med=all[Math.floor(all.length/2)]||avgQ,th=Math.max(med*15,avgQ*5);const seen=new Set();
+ for(const[side,m]of[['b',bids],['a',asks]])for(const[p,q]of m){if(Math.abs(p-mid)/mid>RNG*1.2||q<th)continue;const k=side+p;seen.add(k);let w=walls.get(k);
+  if(!w){w={side,price:p,qty:q,peak:q,born:now,flash:now,grow:0,conf:false};walls.set(k,w)}
+  else{if(q>w.qty*1.25)w.grow=now;w.qty=q;w.peak=Math.max(w.peak,q)}
+  if(!w.conf&&now-w.born>=2000){w.conf=true;w.flash=now;const dist=((p-mid)/mid*100);
+   if(now-startT>4000){added.push(now);wfeed(side==='b'?'🟢':'🔴',`${side==='b'?'Buyer':'Seller'} put up ${usdK(q*p)} at $${fmt(p,P.p)} (${Math.abs(dist).toFixed(2)}% ${dist<0?'below':'above'})`,side==='b'?'var(--bid)':'var(--ask)',side==='b'?'New floor: could slow drops — if it stays.':'New ceiling: could cap rallies — if it stays.')}}w.near=Math.abs(p-mid)/mid<0.0015}
+ for(const[k,w]of walls){if(seen.has(k))continue;const m=w.side==='b'?bids:asks,q=m.get(w.price)||0;if(q>=w.peak*0.35&&q>0){w.qty=q;continue}if(!w.conf){walls.delete(k);continue}
+  // gone: eaten or pulled? trades at/through the wall price since born
+  const life=(now-w.born)/1000;let traded=0;for(const[t,p,qq,sd]of recentTr){if(t<w.born-500)continue;if(w.side==='a'?(sd==='buy'&&p>=w.price):(sd==='sell'&&p<=w.price))traded+=qq}
+  const through=w.side==='a'?mid>w.price:mid<w.price;const eaten=through||traded>=w.peak*0.5;const spoof=!eaten&&(life<8||w.near);
+  const ev={...w,died:now,how:eaten?'eaten':'pulled',spoof,life};wHist.push(ev);walls.delete(k);
+  const S=w.side==='b'?'BID':'ASK';
+  if(eaten)wfeed('🍽️',`${w.side==='a'?'Buyers ate the ceiling':'Sellers broke the floor'} at $${fmt(w.price,P.p)} (${usdK(w.peak*w.price)}, est.)`,'#ffb547',w.side==='a'?'Real buying pressure — price may push higher.':'Real selling pressure — price may slide lower.');
+  else wfeed(spoof?'⚠️':'✖',`${w.side==='b'?'Floor':'Ceiling'} at $${fmt(w.price,P.p)} (${usdK(w.peak*w.price)}) pulled after ${life.toFixed(0)}s${spoof?' — likely fake (est.)':''}`,spoof?'#ff9ad5':'var(--ac)',w.side==='b'?'That support is gone — don\'t count on it.':'That resistance is gone — less in the way up.')}
+ wHist=wHist.filter(e=>now-e.died<TL);midH.push([now,mid]);while(midH.length&&now-midH[0][0]>TL)midH.shift();
+ let sup=0,res=0;for(const w of walls.values()){if(!w.conf||Math.abs(w.price-mid)/mid>RNG)continue;w.side==='b'?sup+=w.qty*w.price:res+=w.qty*w.price}
+ $('sup').textContent=usdK(sup);$('res').textContent=usdK(res);const f=sup+res?sup/(sup+res):.5;$('srb').style.width=f*100+'%';
+ added=added.filter(t=>now-t<TL);const nP=wHist.filter(e=>e.how==='pulled').length,nE=wHist.filter(e=>e.how==='eaten').length,nS=wHist.filter(e=>e.spoof).length,live=[...walls.values()].filter(w=>w.conf);
+ $('tA').textContent=added.length;$('tP').textContent=nP;$('tE').textContent=nE;
+ const stay=live.length+nE,tot=stay+nP,tr=tot?stay/tot:null;$('trb').style.width=(tr==null?50:tr*100)+'%';
+ $('trt').textContent=tr==null?'no walls yet':tr>.6?`✅ ${Math.round(tr*100)}% stick — walls look real`:tr>.3?`⚖️ ${Math.round(tr*100)}% stick — mixed`:`⚠️ only ${Math.round(tr*100)}% stick — mostly fake/pulled`;
+ $('trt').style.color=tr==null?'var(--mu)':tr>.6?'var(--bid)':tr>.3?'#ffd166':'#ff9ad5';
+ const card=(side,id)=>{let best=null;for(const w of live)if(w.side===side&&(!best||w.qty*w.price>best.qty*best.price))best=w;
+  const last=wHist.filter(e=>e.side===side&&now-e.died<15000).pop();const pre=id==='f'?'f':'c';
+  if(best){const d=(best.price-mid)/mid*100;$(pre+'P').textContent='$'+fmt(best.price,P.p);$(pre+'M').textContent=`${usdK(best.qty*best.price)} · ${Math.abs(d).toFixed(2)}% ${d<0?'below':'above'} price`;
+   const st=best.near?['BEING TESTED','#ffd166']:['HOLDING',side==='b'?'var(--bid)':'var(--ask)'];$(pre+'S').textContent=st[0];$(pre+'S').style.color=st[1]}
+  else{$(pre+'P').textContent='—';$(pre+'M').textContent='no big wall right now';$(pre+'S').textContent=''}
+  if(last&&(!best||last.died>best.born)){$(pre+'S').textContent=last.how==='eaten'?'JUST EATEN (est.)':'JUST PULLED';$(pre+'S').style.color=last.how==='eaten'?'#ffb547':'#ff9ad5'}
+  return best};
+ const fl=card('b','f'),ce=card('a','c');
+ let vh,vs,vc;const p=v=>'$'+fmt(v,P.p);
+ if(now-startT<10000){vh='WARMING UP…';vs='Watching the book for big orders (walls).';vc='#8a82a3'}
+ else if(nP>=6&&nP>=2*(live.length+nE)){vh='FAKE WALLS — big orders keep getting pulled';vs=`${nP} walls pulled in 5 min vs ${live.length} still standing. Don't trust the walls you see; watch actual trades.`;vc='#ffd166'}
+ else if(f>.6&&fl){vh=`BUYERS DEFENDING ${p(fl.price)}`;vs=`Bid walls outweigh ask walls ${usdK(sup)} vs ${usdK(res)}. Dips toward ${p(fl.price)} likely get absorbed — unless that wall gets pulled.`;vc='#23d18b'}
+ else if(f<.4&&ce){vh=`SELLERS STACKING ABOVE ${p(ce.price)}`;vs=`Ask walls outweigh bid walls ${usdK(res)} vs ${usdK(sup)}. Rallies toward ${p(ce.price)} likely stall — unless buyers eat it.`;vc='#ff4d6d'}
+ else if(!live.length){vh='QUIET';vs='No big walls near price right now. Price moves on normal flow.';vc='#8a82a3'}
+ else{vh='BALANCED';vs=`Floor ${fl?p(fl.price):'—'} and ceiling ${ce?p(ce.price):'—'} roughly even. Expect chop between them.`;vc='#a970ff'}
+ $('vh').textContent=vh;$('vh').style.color=vc;$('vs').textContent=vs;$('verdict').style.borderColor=vc;
+ $('wcount').textContent=`· ${live.length} live walls`}
+let startT=Date.now();setInterval(scanWalls,250);
+function drawWalls(){const mid=midP();if(!mid)return;const P=prec[sym]||{p:4},now=Date.now(),lo=mid*(1-RNG),hi=mid*(1+RNG);
+ {const[x,w,h]=cv('wmap');const Y=p=>h-(p-lo)/(hi-lo)*h,cx=w/2;const top=[...['b','a']].flatMap(sd=>[...walls.values()].filter(v=>v.conf&&v.side===sd).sort((a,b)=>b.qty*b.price-a.qty*a.price).slice(0,3));let mx=1;for(const v of top)mx=Math.max(mx,v.qty*v.price);
+  x.fillStyle='#0d0b14';x.fillRect(0,0,w,h);x.font='11px Consolas';x.textAlign='center';
+  for(let i=-4;i<=4;i+=2){const p=mid*(1+i*RNG/4.5),y=Y(p);x.strokeStyle='#2a2140';x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke();x.fillStyle='#8a82a3';x.fillText(fmt(p,P.p),cx,y-2)}
+  x.fillStyle='#a970ff';x.fillRect(0,Y(mid)-1,w,2);x.fillText('◆ '+fmt(mid,P.p),cx,Y(mid)-5);
+  const half=Math.max(20,w/2-90);
+  for(const v of top){const y=Y(v.price),L=Math.max(4,v.qty*v.price/mx*half),bid=v.side==='b',col=bid?'35,209,139':'255,77,109';
+   const age=now-Math.max(v.flash,v.grow||0),glow=Math.max(0,1-age/1500),pulse=v.near?(.5+.5*Math.sin(now/120)):0;
+   x.shadowColor=`rgb(${col})`;x.shadowBlur=18*glow+12*pulse;x.fillStyle=`rgba(${col},${.55+.45*glow})`;
+   const X0=bid?cx-38-L:cx+38;x.fillRect(X0,y-5,L,10);x.shadowBlur=0;
+   x.fillStyle='#fff';x.textAlign=bid?'right':'left';x.fillText(usdK(v.qty*v.price),bid?X0-4:X0+L+4,y+4);
+   if(v.near){x.fillStyle='#ff9ad5';x.fillText(' price testing',bid?X0-60:X0+L+50,y+4)}
+   if(now-v.born<6000&&glow>0){x.fillStyle=`rgba(255,255,255,${glow})`;x.fillText('NEW',bid?X0+L-2:X0+2,y-7)}}
+  x.textAlign='center';
+  for(const e of wHist){const a=1-(now-e.died)/3500;if(a<=0)continue;const y=Y(e.price),bid=e.side==='b',L=Math.max(4,e.peak*e.price/mx*half),X0=bid?cx-38-L:cx+38;
+   if(e.how==='pulled'){const sh=(1-a)*14;x.fillStyle=`rgba(169,112,255,${a*.5})`;for(let k=0;k<6;k++)x.fillRect(X0+k*L/6+(k-3)*sh,y-5+(k%2?sh:-sh)/2,L/6-2,10);
+    x.strokeStyle=`rgba(255,77,109,${a})`;x.lineWidth=3;const mxp=X0+L/2;x.beginPath();x.moveTo(mxp-8,y-8);x.lineTo(mxp+8,y+8);x.moveTo(mxp+8,y-8);x.lineTo(mxp-8,y+8);x.stroke();x.lineWidth=1;
+    x.fillStyle=`rgba(255,154,213,${a})`;x.fillText(e.spoof?'FAKE?':'PULLED',mxp,y-11)}
+   else{x.fillStyle=`rgba(255,181,71,${a*.7})`;x.fillRect(X0,y-5,L*a,10);x.fillStyle=`rgba(255,181,71,${a})`;x.fillText('EATEN',X0+L/2,y-9)}}
+  x.fillStyle='#8a82a3';x.textAlign='left';x.fillText('◀ FLOORS (top 3 bids)',4,12);x.textAlign='right';x.fillText('CEILINGS (top 3 asks) ▶',w-4,12);x.textAlign='center';x.fillStyle='#8a82a3';x.fillText('bar = $ size · purple line = price · ✖ pulled · orange = eaten (est.)',w/2,h-4);x.textAlign='left'}
+}
+
+// ===== LONG MODE: tags, score, hype bubbles (read-only; never places orders) =====
+let muted=localStorage.kfMute==='1';const mb=$('mute');const setM=()=>mb.textContent=muted?'🔇 Hype bubbles OFF':'🔊 Hype bubbles ON';setM();mb.onclick=()=>{muted=!muted;localStorage.kfMute=muted?'1':'0';setM()};
+const HYPE=["LFG 🚀 big bid just slammed the tape","Bears getting cooked alive 🔥","WE GOT THIS. Bulls eating good tonight","Somebody just market-bought like they mean it 💪","Shorts are sweating bullets rn","Send it. Full fucking send 🚀","That's a whale with zero chill 🐋","Bid side said 'not today, motherfucker'","Green candle loading… ████▒▒ 70%","Shorts getting liquidated in 4K HDR","Bulls woke up and chose violence 😤","Diamond hands, steel balls 💎","Someone just bought the dip with their whole chest","Tape is printing GREEN, baby","Bears in shambles. Absolute shambles.","That buy hit like a goddamn freight train 🚂","Bulls on the gas, no brakes","Shorts: 🤡  Longs: 😎","Ate the asks for breakfast 🍳","This is the part where bears cry","Buyers came strapped 🔫🐂","Who let the bulls out?! 🐂🐂🐂","Price discovery? More like price DOMINATION","Rip their faces off 🚀🚀","We don't sell, we reload","Max pain for the bears, max gains for the gang","Order book just flexed on everyone","Bull market energy, no cap","That's how you fucking buy","Sellers got sent to the shadow realm"];
+const WALLH=["Floor HELD 🧱 bulls not budging","They tested the bid and got bodied","Brick wall. Bears bounced off it 🧱","Floor said 'nah' — holding strong","Defense wins championships 🛡️"];
+const SURGE=["Buy delta SURGING 📈 bulls stampeding","Buyers piling in — momentum is ours","Wave of green — delta ripping","Flow is bullish AF right now"];
+const WARN=["Bears swinging — hold the line 🛡️","Big sell hit. Breathe. Check your stop.","Sellers pushing — don't panic, watch the floor","Red print incoming — stay frosty","Bears got a punch in. Round's not over.","Heavy sell — respect it, manage risk"];
+const pick=a=>a[Math.floor(Math.random()*a.length)];let lastBub={};
+function bubble(kind,txt,sub,gap){const now=Date.now();if(muted||now-startT<8000||(lastBub[kind]||0)>now-gap||$('bub').children.length>=3)return;lastBub[kind]=now;
+ const d=document.createElement('div');d.className='bb '+(kind==='warn'?'bw':kind==='wall'?'bp':'bg');d.innerHTML=`${txt}<small>${sub}</small>`;$('bub').prepend(d);setTimeout(()=>d.remove(),4100)}
+const tagH=(t)=>`<span class="tag ${t[0]==='G'?'tg':t[0]==='B'?'tb':'tn'}">${t==='G'?'GOOD FOR LONGS':t==='B'?'BAD FOR LONGS':'NEUTRAL'}</span>`;
+function setTag(id,t,why){$('tg'+id).innerHTML=tagH(t);if($('wy'+id))$('wy'+id).textContent=why;return[t,why]}
+let lsE=null,surgeOn=false;const heldT=new Map();
+function longTick(){if(!bids.size)return;const now=Date.now(),mid=midP(),P=prec[sym]||{p:4},[b,a]=sorted();const comp=[];const add=(n,v,w,t,why)=>{comp.push([n,v,w,t,why])};
+ const dir=(v,g,bd)=>v>=g?'G':v<=bd?'B':'N';
+ // imbalance
+ const i05=within(.005);{const t=dir(i05,.58,.42);setTag('Imb',t,t==='G'?`Bids are ${(i05*100).toFixed(0)}% of nearby size — more buyers waiting under price.`:t==='B'?`Asks dominate (${(100-i05*100).toFixed(0)}%) — more sellers stacked above.`:'Book roughly even near price.');add('Book imbalance',(i05-.5)*4,2,t,$('wyImb').textContent)}
+ // flow 60s
+ let bu=0,se=0;for(const[t,p,q,sd]of recentTr)if(now-t<60000)(sd==='buy'?bu+=q*p:se+=q*p);const fs=bu+se?bu/(bu+se):.5;
+ {const t=bu+se<1000?'N':dir(fs,.58,.42);setTag('Tape',t,bu+se<1000?'Barely any trading in the last minute.':`Last 60s: ${usdK(bu)} bought vs ${usdK(se)} sold at market.`);add('Buy vs sell (60s)',bu+se<1000?0:(fs-.5)*4,2.5,t,$('wyTape').textContent)}
+ // cvd trend 2m
+ {const h=cvdH.slice(-120);const d=h.length>5?cvd-h[0]:0;const t=h.length<10?'N':d>0?'G':d<0?'B':'N';setTag('Cvd',t,h.length<10?'Collecting data…':d>0?`Net buying over ~2 min (+${d.toFixed(0)}) — buyers lifting the offer.`:`Net selling over ~2 min (${d.toFixed(0)}) — sellers hitting bids.`);add('Volume delta',h.length<10?0:Math.sign(d)*Math.min(1,Math.abs(d)/(Math.abs(cvd)+1)*5+.3),1.5,t,$('wyCvd').textContent)}
+ // spread
+ {const bps=(a[0][0]-b[0][0])/mid*1e4;const t=bps<=5?'G':bps>15?'B':'N';setTag('Spr',t,`Spread ${bps.toFixed(1)} bps — ${t==='G'?'tight, cheap to get in/out':t==='B'?'wide, entries cost you slippage':'ok'}.`);comp.push(['Spread',0,0,t,$('wySpr').textContent])}
+ // depth ±1%
+ {const i1=within(.01),t=dir(i1,.55,.45);setTag('Depth',t,`Within ±1%: ${(i1*100).toFixed(0)}% bids — ${t==='G'?'deeper cushion below':t==='B'?'more supply overhead':'balanced'}.`);add('Depth ±1%',(i1-.5)*4,1,t,$('wyDepth').textContent)}
+ // walls
+ let sup=0,res=0;for(const w of walls.values()){if(!w.conf||Math.abs(w.price-mid)/mid>RNG)continue;w.side==='b'?sup+=w.qty*w.price:res+=w.qty*w.price}const wf=sup+res?sup/(sup+res):.5;
+ const nP=wHist.filter(e=>e.how==='pulled').length,nE=wHist.filter(e=>e.how==='eaten').length,live=[...walls.values()].filter(w=>w.conf),tot=live.length+nE+nP,tr=tot?(live.length+nE)/tot:null;
+ {const t=sup+res?dir(wf,.6,.4):'N';$('tgWall').innerHTML=tagH(t);add('Walls',sup+res?(wf-.5)*2*(tr==null?.5:Math.max(.3,tr)):0,1.5,t,sup+res?`Bid walls ${usdK(sup)} vs ask walls ${usdK(res)}${tr!=null&&tr<.3?' (but most walls get pulled — low trust)':''}.`:'No big walls near price.')}
+ {const t=tr==null?'N':tr>.6?'G':'N';$('tgTrust').innerHTML=tagH(t);comp.push(['Wall trust',0,0,t,tr==null?'No walls yet.':tr>.6?'Walls are sticking — floors are likely real.':'Walls keep vanishing — don\'t lean on any floor.'])}
+ // big prints 5m
+ {const big=sym.startsWith('BTC')?100000:25000;let bb=0,bs=0;for(const[t,p,q,sd]of recentTr)if(now-t<TL&&p*q>=big)(sd==='buy'?bb+=p*q:bs+=p*q);const t=bb+bs?dir(bb/(bb+bs),.6,.4):'N';setTag('Big',t,bb+bs?`Big trades (≥${usdK(big)}) last 5m: ${usdK(bb)} bought vs ${usdK(bs)} sold.`:'No big trades in the last 5 min.');add('Whale prints (5m)',bb+bs?(bb/(bb+bs)-.5)*2:0,1.5,t,$('wyBig').textContent)}
+ // price trend 5m
+ {const p0=midH[0]?.[1];const ch=p0?(mid-p0)/p0*100:0;const t=ch>.1?'G':ch<-.1?'B':'N';add('Price 5m',Math.max(-1,Math.min(1,ch/.4)),1,t,`Price ${ch>=0?'+':''}${ch.toFixed(2)}% over the last ~5 min.`)}
+ // score
+ let sw=0,sv=0;for(const[,v,w]of comp){sv+=Math.max(-1,Math.min(1,v))*w;sw+=w}const raw=50+50*(sw?sv/sw:0);lsE=lsE==null?raw:lsE*.8+raw*.2;const sc=Math.round(lsE);
+ $('lsn').textContent=now-startT<10000?'—':sc;$('lsk').style.left=`calc(${sc}% - 3px)`;const col=sc>=65?'#23d18b':sc>=55?'#7fe0b0':sc<=35?'#ff4d6d':sc<=45?'#ff9ab0':'#b9b2cc';$('lsn').style.color=col;$('ls').style.borderColor=col;
+ $('lsv').textContent=now-startT<10000?'WARMING UP…':sc>=70?'BULLS IN CONTROL — longs favored':sc>=58?'LEANING BULLISH — longs have the edge':sc<=30?'BEARS IN CONTROL — longs at risk':sc<=42?'CAREFUL — sellers pressing':'NO EDGE — chop, wait for a side';$('lsv').style.color=col;
+ $('chips').innerHTML=comp.map(([n,,,t,why])=>`<div class="chip"><b>${n} ${tagH(t)}</b><span class="w">${why}</span></div>`).join('');
+ // bubbles: buy surge (30s)
+ let b30=0,s30=0;for(const[t,p,q,sd]of recentTr)if(now-t<30000)(sd==='buy'?b30+=q*p:s30+=q*p);const big=sym.startsWith('BTC')?100000:25000;
+ if(b30>=big*2&&b30/(b30+s30)>=.75){if(!surgeOn)bubble('surge',pick(SURGE),`${usdK(b30)} bought vs ${usdK(s30)} sold in 30s`,30000);surgeOn=true}else surgeOn=false;
+ // floor held a test: best bid wall near price for 5s and still there
+ for(const w of live){if(w.side!=='b')continue;const k=w.side+w.price;if(w.near){if(!heldT.has(k))heldT.set(k,now);else if(heldT.get(k)>0&&now-heldT.get(k)>5000){heldT.set(k,-1);bubble('wall',pick(WALLH),`Bid wall $${fmt(w.price,P.p)} (${usdK(w.qty*w.price)}) held a 5s+ test`,20000)}}}
+}
+setInterval(longTick,1000);
+let tSizes=[];
+function hypeTrade(t){const v=t.qty*t.price,buy=t.side==='buy';tSizes.push(v);if(tSizes.length>1000)tSizes.shift();if(tSizes.length<100)return;
+ const p99=[...tSizes].sort((x,y)=>x-y)[Math.floor(tSizes.length*.99)],big=sym.startsWith('BTC')?100000:25000,th=Math.max(5000,Math.min(big,p99));if(v<th)return;
+ const P=prec[sym]||{p:4};if(buy)bubble('buy',pick(HYPE),`Market BUY ${usdK(v)} @ $${fmt(t.price,P.p)}`,6000);else bubble('warn',pick(WARN),`Market SELL ${usdK(v)} @ $${fmt(t.price,P.p)}`,12000)}
+start();render();
+</script></body></html>
