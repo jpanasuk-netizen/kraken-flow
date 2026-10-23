@@ -80,6 +80,22 @@ header{gap:10px}header>span[style*="margin-left:auto"]{flex:1 1 0;min-width:0;te
 #rxlb i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;transition:width .8s,background .8s,box-shadow .8s}
 @media(min-width:1401px) and (max-width:1800px){#rxc{height:104px}}@media(max-width:1400px){#rxc{height:110px}}
 #pos{display:flex;flex-direction:column}#posb{flex:1 1 auto;min-height:40px}
+
+/* ---- polish pass ---- */
+.inow{font:800 13px Consolas,monospace;margin-left:8px;letter-spacing:0;transition:color .3s}
+.ctog{float:right;display:inline-flex;gap:2px;background:#0b0911;border:1px solid var(--bd);border-radius:8px;padding:1px}.ctog b{font:700 10px Consolas;padding:1px 6px;border-radius:6px;cursor:pointer;color:var(--mu);transition:all .2s}.ctog b.on{background:var(--ac);color:#fff;box-shadow:0 0 8px #a970ff}.ctog b:hover{color:#fff}
+body{background:radial-gradient(1200px 600px at 20% -10%,#2a1a4a55,transparent),radial-gradient(900px 500px at 110% 110%,#0f6b4822,transparent),var(--bg);min-height:100vh}
+.p{background:linear-gradient(180deg,#1a1526,#130f1c);border-color:#2f2548;box-shadow:inset 0 1px 0 #ffffff0a,0 4px 18px #0006;transition:border-color .3s,box-shadow .3s}
+.p:hover{border-color:#a970ff66;box-shadow:inset 0 1px 0 #ffffff12,0 0 18px #a970ff22}
+.p h3{text-shadow:0 0 10px #a970ff66;font-weight:800}
+header b{text-shadow:0 0 14px #a970ffaa}
+.tag{transition:all .3s}.tg{box-shadow:0 0 8px #23d18b66}.tb{box-shadow:0 0 8px #ff4d6d66}
+.bar{background:linear-gradient(90deg,#ff4d6d,#c9304f);box-shadow:inset 0 0 6px #0008}.bar i{background:linear-gradient(90deg,#0f8a5c,#23d18b);box-shadow:0 0 10px #23d18b;transition:width .4s ease}
+#ls{background:linear-gradient(90deg,#1a1526,#16121f);box-shadow:0 0 22px #a970ff22}#lsn{text-shadow:0 0 16px currentColor}
+.chip{transition:transform .2s,border-color .3s}.chip:hover{transform:translateY(-1px);border-color:#a970ff88}
+#tape .r{animation:tin .5s ease-out}@keyframes tin{from{background:#a970ff40;transform:translateX(-6px)}to{background:transparent;transform:none}}
+#verdict{box-shadow:0 0 18px #0008;transition:border-color .4s,box-shadow .4s}.cp{text-shadow:0 0 10px currentColor}
+.list::-webkit-scrollbar{width:6px}.list::-webkit-scrollbar-thumb{background:#2f2548;border-radius:3px}
 </style></head><body>
 <div id="menu"><div class="mi" id="mFile"><span>File</span><div class="dd"><div id="miKeys">🔑 Keys…</div><div id="miDonate" onclick="window.open('https://www.gofundme.com/f/support-jeremys-bridge-to-ssdi','_blank','noopener')">💜 Help with release version…</div><div id="miPos">👁 Show / hide position panel</div></div></div><div class="mi" id="mView"><span>View</span><div class="dd"><div id="miMute">🔊 Toggle hype bubbles</div></div></div></div>
 <header><b>◆ KRAKEN FLOW</b><select id="sym"><option>XRP/USD</option><option>BTC/USD</option><option>ETH/USD</option><option>SOL/USD</option></select>
@@ -101,7 +117,7 @@ header{gap:10px}header>span[style*="margin-left:auto"]{flex:1 1 0;min-width:0;te
 <div id="g">
 <div class="p" id="lad"><h3>Order book ladder <span id="tgSpr"></span></h3><div class="why2" id="wySpr"></div><div id="ladder" class="list"></div></div>
 <div class="p"><h3>Depth chart <span id="tgDepth"></span></h3><div class="why2" id="wyDepth"></div><canvas id="depth"></canvas></div>
-<div class="p"><h3>Imbalance (bid share) <span id="tgImb"></span></h3><div class="why2" id="wyImb"></div><div class="gauges"><div>±0.5% <span id="i05"></span><div class="bar"><i id="b05"></i></div></div><div>±1% <span id="i1"></span><div class="bar"><i id="b1"></i></div></div></div><canvas id="imb"></canvas><h3 style="margin-top:6px">Cumulative volume delta <span id="cvdv" class="st"></span> <span id="tgCvd"></span></h3><div class="why2" id="wyCvd"></div><canvas id="cvd"></canvas></div>
+<div class="p"><h3>Imbalance (bid share) <span id="tgImb"></span><span id="imbNow" class="inow">--</span><span class="ctog" id="ctog"><b data-s="1" class="on">1s</b><b data-s="5">5s</b><b data-s="15">15s</b></span></h3><div class="why2" id="wyImb"></div><div class="gauges"><div>±0.5% <span id="i05"></span><div class="bar"><i id="b05"></i></div></div><div>±1% <span id="i1"></span><div class="bar"><i id="b1"></i></div></div></div><canvas id="imb"></canvas><h3 style="margin-top:6px">Cumulative volume delta <span id="cvdv" class="st"></span> <span id="tgCvd"></span></h3><div class="why2" id="wyCvd"></div><canvas id="cvd"></canvas></div>
 <div class="p" id="tape"><h3>Trade tape <span id="tgTape"></span></h3><div class="why2" id="wyTape"></div><div id="tp" class="list"></div></div>
 <div class="p" id="pos"><h3>My position <span class="st" style="text-transform:none;letter-spacing:0">· read-only via local helper</span> <span id="tgPos"></span></h3><div id="posb" class="list"><div class="st">Connecting to position helper…</div></div><div id="rx"><h4><span>⚛ LONG PRESSURE · 60s</span><span id="tgRx"></span></h4><canvas id="rxc"></canvas><div id="rxv" class="st">CHARGING…</div><div id="rxt"></div>
 <div id="rxl"><div style="display:flex;justify-content:space-between"><span class="st">☠ LIQ DISTANCE <span id="tgLiq"></span></span><span id="rxlt" class="st" style="text-align:right">—</span></div><div id="rxlb"><i></i></div></div></div></div>
@@ -171,7 +187,7 @@ function render(){if(!bids.size){requestAnimationFrame(render);return}const P=pr
   x.fillStyle='#8a82a3';x.font='11px Consolas';x.fillText(fmt(lo,P.p),2,H-2);x.fillText(fmt(hi,P.p),w-60,H-2);x.fillStyle='#a970ff';x.fillText(fmt(midP(),P.p),w/2-25,12)}
  // imbalance
  const i05=within(.005),i1=within(.01);$('i05').textContent=(i05*100).toFixed(1)+'%';$('i1').textContent=(i1*100).toFixed(1)+'%';$('b05').style.width=i05*100+'%';$('b1').style.width=i1*100+'%';
- line('imb',imbH.map(v=>v[0]),0,1,'#a970ff',.5);{const c=$('imb').getContext('2d');}line2('imb',imbH.map(v=>v[1]));
+ candleSample(i05);drawCandles();
  // cvd
  const cv_=cvdH.concat([cvd]);line('cvd',cv_,Math.min(0,...cv_),Math.max(0,...cv_),cvd>=0?'#23d18b':'#ff4d6d',0);$('cvdv').textContent=cvd.toFixed(1);
  drawWalls();
@@ -371,4 +387,26 @@ $('sSave').onclick=async()=>{if(await saveKeys('sKey','sSec','sMsg'))setTimeout(
 $('sSkip').onclick=()=>{localStorage.kfSkip='1';$('ovSetup').classList.remove('on');posVis(false)};
 (async()=>{if(localStorage.kfSkip==='1')return;try{const k=await hp('/keys');if(!k.configured)$('ovSetup').classList.add('on')}catch(e){}})();
 start();render();
+
+// ---- bid-share candles (real samples of ±0.5% book bid share) ----
+let cdl=[],cIv=+(localStorage.cIv||1),cLastS=0;
+function candleSample(v){const now=performance.now();if(now-cLastS<100)return;cLastS=now;const k=Math.floor(Date.now()/1000/cIv);let c=cdl[cdl.length-1];
+ if(!c||c.k!==k){c={k,o:c?c.c:v,h:v,l:v,c:v};if(!cdl.length)c.o=v;cdl.push(c);if(cdl.length>400)cdl.shift()}else{c.c=v;if(v>c.h)c.h=v;if(v<c.l)c.l=v}}
+function drawCandles(){const[x,w,h]=cv('imb');x.fillStyle='#0b0911';x.fillRect(0,0,w,h);if(!cdl.length)return;
+ const cw=Math.max(6,Math.min(14,w/60)),n=Math.ceil(w/cw)+1,vis=cdl.slice(-n);let lo=1,hi=0;for(const c of vis){lo=Math.min(lo,c.l);hi=Math.max(hi,c.h)}lo=Math.min(lo,.5)-.02;hi=Math.max(hi,.5)+.02;lo=Math.max(0,lo);hi=Math.min(1,hi);
+ const pad=14,Y=v=>pad+(hi-v)/(hi-lo||1)*(h-pad*2),frac=((Date.now()/1000/cIv)%1),off=frac*cw;
+ // zones
+ const y5=Y(.5);let g=x.createLinearGradient(0,0,0,y5);g.addColorStop(0,'rgba(35,209,139,.10)');g.addColorStop(1,'rgba(35,209,139,0)');x.fillStyle=g;x.fillRect(0,0,w,y5);
+ g=x.createLinearGradient(0,y5,0,h);g.addColorStop(0,'rgba(255,77,109,0)');g.addColorStop(1,'rgba(255,77,109,.10)');x.fillStyle=g;x.fillRect(0,y5,w,h-y5);
+ x.font='10px Consolas';x.textAlign='left';for(const lv of[.42,.58]){if(lv<lo||lv>hi)continue;const y=Y(lv);x.strokeStyle='rgba(138,130,163,.25)';x.setLineDash([2,4]);x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke();x.fillStyle='#8a82a3';x.fillText(Math.round(lv*100)+'%',3,y-2)}
+ x.setLineDash([6,4]);x.strokeStyle='#a970ffaa';x.lineWidth=1.2;x.shadowColor='#a970ff';x.shadowBlur=6;x.beginPath();x.moveTo(0,y5);x.lineTo(w,y5);x.stroke();x.setLineDash([]);x.shadowBlur=0;x.fillStyle='#a970ff';x.fillText('50%',3,y5-3);
+ vis.forEach((c,i)=>{const cx=w-60-(vis.length-1-i)*cw-off+cw/2;if(cx<-cw)return;const up=c.c>=c.o,col=up?'#23d18b':'#ff4d6d',last=i===vis.length-1;
+  x.strokeStyle=col;x.fillStyle=col;x.lineWidth=1;x.shadowColor=col;x.shadowBlur=last?14:4;x.beginPath();x.moveTo(cx,Y(c.h));x.lineTo(cx,Y(c.l));x.stroke();
+  const t=Math.min(Y(c.o),Y(c.c)),bh=Math.max(1.5,Math.abs(Y(c.o)-Y(c.c)));x.globalAlpha=last?1:.85;x.fillRect(cx-cw*.35,t,cw*.7,bh);x.globalAlpha=1});x.shadowBlur=0;
+ const L=cdl[cdl.length-1],v=L.c,yy=Y(v),col=v>=.58?'#23d18b':v<=.42?'#ff4d6d':'#b9b2cc';
+ x.strokeStyle=col+'88';x.setLineDash([1,3]);x.beginPath();x.moveTo(0,yy);x.lineTo(w-56,yy);x.stroke();x.setLineDash([]);
+ x.fillStyle=col;x.shadowColor=col;x.shadowBlur=10;x.beginPath();x.roundRect?x.roundRect(w-56,yy-9,54,18,9):x.rect(w-56,yy-9,54,18);x.fill();x.shadowBlur=0;x.fillStyle='#0b0911';x.font='bold 11px Consolas';x.textAlign='center';x.fillText((v*100).toFixed(1)+'%',w-29,yy+4);x.textAlign='left';
+ const e=$('imbNow');if(e){e.textContent=(v*100).toFixed(1)+'% '+(v>=.58?'▲':v<=.42?'▼':'•');e.style.color=col;e.style.textShadow='0 0 8px '+col}}
+document.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.closest('#ctog b');if(!b)return;cIv=+b.dataset.s;localStorage.cIv=cIv;cdl=[];document.querySelectorAll('#ctog b').forEach(z=>z.classList.toggle('on',z===b))});
+addEventListener('DOMContentLoaded',()=>document.querySelectorAll('#ctog b').forEach(z=>z.classList.toggle('on',+z.dataset.s===cIv)));
 </script></body></html>
