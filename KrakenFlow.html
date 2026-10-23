@@ -9,12 +9,12 @@ header b{color:var(--ac);font-size:16px}select{background:var(--pn);color:var(--
 .p{background:var(--pn);border:1px solid var(--bd);border-radius:8px;padding:8px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
 .p h3{margin:0 0 6px;font-size:12px;color:var(--ac);text-transform:uppercase;letter-spacing:.06em}
 .p canvas{flex:1;width:100%;min-height:0}
-#lad{grid-area:1/1/3/2}#tape{grid-area:1/4/3/5}#walls{grid-area:2/2/3/4}#lad div.r{display:flex;justify-content:space-between;font:12px Consolas,monospace;padding:0 4px;position:relative}
+#lad{grid-area:1/1/3/2}#tape{grid-area:1/4/2/5}#walls{grid-area:2/2/3/4}#lad div.r{display:flex;justify-content:space-between;font:12px Consolas,monospace;padding:0 4px;position:relative}
 #lad .r i{position:absolute;top:0;bottom:0;right:0;opacity:.18}
 #tape .r,#big .r{font:12px Consolas,monospace;display:flex;justify-content:space-between}
 .list{overflow:auto;flex:1}.gauges{display:flex;gap:10px}.gauges>div{flex:1;text-align:center}
 .bar{height:14px;background:var(--ask);border-radius:7px;overflow:hidden}.bar i{display:block;height:100%;background:var(--bid)}
-@media(max-width:1800px){#g{grid-template-columns:260px 1fr 300px;grid-template-rows:repeat(3,48vh);height:auto}#tape{grid-row:auto}#lad{grid-area:1/1/3/2}#tape{grid-area:1/4/3/5}#walls{grid-area:2/2/3/4}}
+@media(max-width:1800px){#g{grid-template-columns:260px 1fr 300px;grid-template-rows:repeat(3,48vh);height:auto}#tape{grid-row:auto}#lad{grid-area:1/1/3/2}#tape{grid-area:1/4/2/5}#walls{grid-area:2/2/3/4}}
 @media(max-width:1100px){#g{grid-template-columns:1fr;grid-template-rows:none;grid-auto-rows:420px}#lad,#tape{grid-area:auto}}
 .wrow{display:flex;gap:8px;flex:1;min-height:0}#wmap{flex:1 1 0;width:0;min-width:0}.wside{flex:0 0 30%;display:flex;flex-direction:column;min-height:0}
 .sr{display:flex;gap:6px;align-items:center;font:12px Consolas,monospace}#wfeed .r{font:12px Consolas,monospace;padding:2px 0;border-bottom:1px solid #2a214060;animation:fl 1.2s}
@@ -49,17 +49,44 @@ body{font-size:12px}#g{grid-template-columns:210px 1fr 1fr!important;grid-templa
 #ls{flex-wrap:wrap;gap:8px}#lsn{font-size:36px;min-width:60px}#lsm{width:180px}#lsv{font-size:18px}
 #chips{flex-basis:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.chip{max-width:none;font-size:11px;padding:3px 6px}
 .bb{font-size:20px;max-width:420px}#bigp{width:auto;max-height:20vh}}
+#pos{grid-area:2/4/3/5}#posb .kv{display:flex;justify-content:space-between;font:12px Consolas,monospace;padding:1px 0;border-bottom:1px solid #2a214055}#posb .kv span:first-child{color:var(--mu);font-family:Segoe UI}
+#posb .big{font:800 22px Consolas,monospace;text-align:center;margin:2px 0}#posb .hd{font-weight:800;font-size:15px;margin:2px 0}
+@media(max-width:1400px){#pos{grid-area:3/1/4/2!important}#walls{grid-area:2/2/4/4!important}#tape{max-height:46vh}}
+#menu{display:flex;gap:2px;background:#0a0810;border-bottom:1px solid var(--bd);padding:0 8px;font-size:12px;position:relative;z-index:50}
+.mi{position:relative}.mi>span{display:inline-block;padding:4px 10px;cursor:pointer;border-radius:4px}.mi>span:hover,.mi.open>span{background:#2a2140}
+.dd{display:none;position:absolute;top:100%;left:0;background:var(--pn);border:1px solid var(--bd);border-radius:6px;min-width:180px;padding:4px;box-shadow:0 8px 24px #000a}.mi.open .dd{display:block}
+.dd div{padding:6px 10px;border-radius:4px;cursor:pointer}.dd div:hover{background:#a970ff33}
+.ov{position:fixed;inset:0;background:#05040acc;backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:200}.ov.on{display:flex}
+.dlg{background:var(--pn);border:2px solid var(--ac);border-radius:14px;padding:22px 26px;width:min(520px,92vw);box-shadow:0 0 40px #a970ff55}
+.dlg h2{margin:0 0 4px;color:var(--ac)}.dlg label{display:block;font-size:12px;color:var(--mu);margin:10px 0 3px}
+.dlg input{width:100%;background:#0d0b14;color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:8px;font:13px Consolas,monospace}
+.dlg .btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.dlg button{background:#0d0b14;color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:7px 14px;cursor:pointer}
+.dlg button.pr{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:700}.note{background:#ffd16614;border:1px solid #ffd16655;border-radius:8px;padding:8px;font-size:12px;margin-top:10px}
+#kmsg{min-height:18px;margin-top:8px;font-weight:600}
 </style></head><body>
+<div id="menu"><div class="mi" id="mFile"><span>File</span><div class="dd"><div id="miKeys">🔑 Keys…</div><div id="miPos">👁 Show / hide position panel</div></div></div><div class="mi" id="mView"><span>View</span><div class="dd"><div id="miMute">🔊 Toggle hype bubbles</div></div></div></div>
 <header><b>◆ KRAKEN FLOW</b><select id="sym"><option>XRP/USD</option><option>BTC/USD</option><option>ETH/USD</option><option>SOL/USD</option></select>
 <span id="px" style="font-size:18px">—</span><span class="st" id="stat">connecting…</span><span class="st" id="ck"></span>
 <button id="mute">🔊 Hype bubbles ON</button><span class="st" style="margin-left:auto">public data only · wss://ws.kraken.com/v2 · read-only</span></header>
 <div id="ls"><div><div class="st" style="font-size:11px">LONG SCORE</div><div id="lsn">—</div></div><div><div id="lsm"><i id="lsk" style="left:50%"></i></div><div class="st" style="font-size:10px;display:flex;justify-content:space-between"><span>0 bears</span><span>50</span><span>bulls 100</span></div></div>
 <div><div id="lsv">WARMING UP…</div><div id="lss" class="st">Order-book read only — not a trade signal. This app never places orders.</div></div><div id="chips"></div></div>
-<div id="bub"></div><div id="g">
+<div id="bub"></div><div class="ov" id="ovSetup"><div class="dlg"><h2>◆ Welcome to Kraken Flow</h2><div class="st">Want to see your own position? Add a Kraken API key. The charts work without one.</div>
+<label>API key</label><input id="sKey" type="password" autocomplete="off" spellcheck="false" placeholder="paste API key">
+<label>Private key (secret)</label><input id="sSec" type="password" autocomplete="off" spellcheck="false" placeholder="paste private key">
+<div class="note">⚠️ Use a <b>query-only</b> key: Query Funds, Query Open Orders &amp; Trades, Query Closed Orders &amp; Trades. <b>No</b> trade or withdraw permissions. Keys go only to the local helper on 127.0.0.1, which saves them to your <code>.env</code> file. They never leave your machine.</div>
+<div id="sMsg" style="min-height:18px;margin-top:8px;font-weight:600"></div>
+<div class="btns"><button class="pr" id="sSave">Save &amp; connect</button><button id="sSkip">Skip — run without position panel</button></div></div></div>
+<div class="ov" id="ovKeys"><div class="dlg"><h2>🔑 Kraken API keys</h2><div id="kStat" class="st">Checking helper…</div>
+<label>API key</label><input id="kKey" type="password" autocomplete="off" spellcheck="false" placeholder="leave blank to keep current">
+<label>Private key (secret)</label><input id="kSec" type="password" autocomplete="off" spellcheck="false" placeholder="leave blank to keep current">
+<div class="note">Query-only permissions only. Saved keys are never shown again (only the last 4 characters of the API key).</div><div id="kmsg"></div>
+<div class="btns"><button class="pr" id="kSave">Save</button><button id="kTest">Test</button><button id="kClear">Clear keys</button><button id="kClose" style="margin-left:auto">Close</button></div></div></div>
+<div id="g">
 <div class="p" id="lad"><h3>Order book ladder <span id="tgSpr"></span></h3><div class="why2" id="wySpr"></div><div id="ladder" class="list"></div></div>
 <div class="p"><h3>Depth chart <span id="tgDepth"></span></h3><div class="why2" id="wyDepth"></div><canvas id="depth"></canvas></div>
 <div class="p"><h3>Imbalance (bid share) <span id="tgImb"></span></h3><div class="why2" id="wyImb"></div><div class="gauges"><div>±0.5% <span id="i05"></span><div class="bar"><i id="b05"></i></div></div><div>±1% <span id="i1"></span><div class="bar"><i id="b1"></i></div></div></div><canvas id="imb"></canvas><h3 style="margin-top:6px">Cumulative volume delta <span id="cvdv" class="st"></span> <span id="tgCvd"></span></h3><div class="why2" id="wyCvd"></div><canvas id="cvd"></canvas></div>
 <div class="p" id="tape"><h3>Trade tape <span id="tgTape"></span></h3><div class="why2" id="wyTape"></div><div id="tp" class="list"></div></div>
+<div class="p" id="pos"><h3>My position <span class="st" style="text-transform:none;letter-spacing:0">· read-only via local helper</span> <span id="tgPos"></span></h3><div id="posb" class="list"><div class="st">Connecting to position helper…</div></div></div>
 <div class="p" id="walls"><h3>Walls — what big orders are doing <span class="st" id="wcount"></span> <span id="tgWall"></span> <span id="tgTrust"></span></h3>
 <div id="verdict"><div id="vh">WARMING UP…</div><div id="vs" class="st">Watching the book for big orders (walls). Needs ~10s.</div></div>
 <div class="wrow">
@@ -252,5 +279,41 @@ let tSizes=[];
 function hypeTrade(t){const v=t.qty*t.price,buy=t.side==='buy';tSizes.push(v);if(tSizes.length>1000)tSizes.shift();if(tSizes.length<100)return;
  const p99=[...tSizes].sort((x,y)=>x-y)[Math.floor(tSizes.length*.99)],big=sym.startsWith('BTC')?100000:25000,th=Math.max(5000,Math.min(big,p99));if(v<th)return;
  const P=prec[sym]||{p:4};if(buy)bubble('buy',pick(HYPE),`Market BUY ${usdK(v)} @ $${fmt(t.price,P.p)}`,6000);else bubble('warn',pick(WARN),`Market SELL ${usdK(v)} @ $${fmt(t.price,P.p)}`,12000)}
+
+// ===== MY POSITION (read-only, from local helper; keys never touch this page) =====
+const NOKEY='<div class="hd st">Add your Kraken API key (read-only) to see your position</div><div class="st" style="font-size:11px">File → Keys… (or copy .env.example to .env), with position_server.py running — Kraken Flow.bat starts it if Python is installed.</div>';async function posTick(){const el=$('posb');let d;try{const r=await fetch('http://127.0.0.1:8787/position',{cache:'no-store'});d=await r.json()}catch(e){el.innerHTML=NOKEY;$('tgPos').innerHTML='';return}
+ if(d.nokeys){el.innerHTML=NOKEY;$('tgPos').innerHTML='';return}if(!d.ok){el.innerHTML=`<div class="hd bad">Position helper error</div><div class="st">${String(d.error).replace(/[<>&]/g,'')}</div>`;return}
+ const $f=(v,n=2)=>v==null?'n/a':(+v).toLocaleString(undefined,{minimumFractionDigits:n,maximumFractionDigits:n}),A=d.account,kv=(k,v,c)=>`<div class="kv"><span>${k}</span><span style="${c?'color:'+c:''}">${v}</span></div>`;
+ const ts=new Date(d.updated*1000).toLocaleTimeString();let h='';
+ if(!d.positions.length){h+='<div class="hd st">No open margin position</div>';$('tgPos').innerHTML=tagH('N')}
+ for(const p of d.positions){const up=p.net>=0,col=up?'var(--bid)':'var(--ask)',P=prec[sym]||{p:5};
+  h+=`<div class="hd" style="color:${p.side==='long'?'var(--bid)':'var(--ask)'}">${p.side==='long'?'🟢 LONG':'🔴 SHORT'} ${p.pair} · ${$f(p.size,2)} ${p.leverage?"· "+p.leverage.toFixed(1)+"× lev":""}</div>`;
+  h+=`<div class="big" style="color:${col}">${up?'+':''}$${$f(p.net)} <span style="font-size:15px">(${up?'+':''}${$f(p.pnl_pct)}%)</span></div>`;
+  h+=kv('Avg entry','$'+$f(p.avg_entry,5))+kv('Current price','$'+$f(p.price,5),col)+kv('Position value','$'+$f(p.value))+kv('Margin used','$'+$f(p.margin))+kv('Fees paid','$'+$f(p.fees))+kv('Liquidation (est.)',p.liq_est?'$'+$f(p.liq_est,5)+' ('+$f((p.liq_est-p.price)/p.price*100,1)+'%)':'n/a','#ffb547');
+  $('tgPos').innerHTML=tagH(p.side==='long'?(up?'G':'B'):'N')}
+ const ml=A.margin_level;h+=kv('Equity','$'+$f(A.equity))+kv('Free margin','$'+$f(A.free_margin))+kv('Margin level',ml==null?'n/a':$f(ml,0)+'%',ml==null?'':ml>150?'var(--bid)':ml>100?'#ffd166':'var(--ask)')+kv('Open orders',d.open_orders)+kv('Updated',ts);
+ h+=`<div class="st" style="font-size:10px;margin-top:3px">Liquidation is an ${d.liq_note||'estimate'}. Read-only — no trading from this app.</div>`;el.innerHTML=h}
+posTick();setInterval(posTick,10000);
+
+// ===== KEYS: first-run setup + File > Keys (keys go ONLY to the local helper on 127.0.0.1) =====
+const HELP='http://127.0.0.1:8787';
+async function hp(path,body){const r=await fetch(HELP+path,body===undefined?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return r.json()}
+document.querySelectorAll('.mi>span').forEach(s=>s.onclick=e=>{const m=s.parentElement,o=m.classList.contains('open');document.querySelectorAll('.mi').forEach(x=>x.classList.remove('open'));if(!o)m.classList.add('open');e.stopPropagation()});
+document.addEventListener('click',()=>document.querySelectorAll('.mi').forEach(x=>x.classList.remove('open')));
+const posVis=v=>{$('pos').style.display=v?'':'none';localStorage.kfPosHidden=v?'0':'1'};if(localStorage.kfPosHidden==='1')posVis(false);
+$('miPos').onclick=()=>posVis($('pos').style.display==='none');$('miMute').onclick=()=>$('mute').click();
+async function keyStat(){try{const k=await hp('/keys');$('kStat').innerHTML=k.configured?`Saved key: <b>••••••••${k.key_last4}</b> · secret: <b>••••••••</b>`:'No keys saved.';return k}catch(e){$('kStat').innerHTML='<span class="bad">Position helper not running — start position_server.py (Kraken Flow.bat does it if Python is installed).</span>';return null}}
+const say=(id,ok,t)=>{$(id).textContent=t;$(id).style.color=ok?'var(--bid)':'var(--ask)'};
+$('miKeys').onclick=()=>{$('kKey').value=$('kSec').value='';$('kmsg').textContent='';$('ovKeys').classList.add('on');keyStat()};
+$('kClose').onclick=()=>$('ovKeys').classList.remove('on');
+async function saveKeys(kid,sid,mid){const key=$(kid).value.trim(),secret=$(sid).value.trim();if(!key||!secret){say(mid,false,'Enter both the API key and the private key.');return false}
+ try{const r=await hp('/keys',{key,secret});$(kid).value=$(sid).value='';if(!r.ok){say(mid,false,r.error);return false}const t=await hp('/keys/test',{});say(mid,t.ok,t.ok?`✅ Saved (…${r.key_last4}) — Kraken accepted it`:`Saved (…${r.key_last4}) but test failed: ${t.error}`);posVis(true);posTick();keyStat();return t.ok}
+ catch(e){say(mid,false,'Position helper not running — start position_server.py first.');return false}}
+$('kSave').onclick=()=>saveKeys('kKey','kSec','kmsg');
+$('kTest').onclick=async()=>{try{const t=await hp('/keys/test',{});say('kmsg',t.ok,t.ok?'✅ '+t.message:'❌ '+t.error)}catch(e){say('kmsg',false,'Position helper not running.')}};
+$('kClear').onclick=async()=>{try{await hp('/keys/clear',{});say('kmsg',true,'Keys cleared from .env.');keyStat();posTick()}catch(e){say('kmsg',false,'Position helper not running.')}};
+$('sSave').onclick=async()=>{if(await saveKeys('sKey','sSec','sMsg'))setTimeout(()=>$('ovSetup').classList.remove('on'),900)};
+$('sSkip').onclick=()=>{localStorage.kfSkip='1';$('ovSetup').classList.remove('on');posVis(false)};
+(async()=>{if(localStorage.kfSkip==='1')return;try{const k=await hp('/keys');if(!k.configured)$('ovSetup').classList.add('on')}catch(e){}})();
 start();render();
 </script></body></html>
