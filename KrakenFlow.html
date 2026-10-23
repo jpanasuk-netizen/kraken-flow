@@ -70,11 +70,13 @@ body{font-size:12px}#g{grid-template-columns:210px 1fr 1fr!important;grid-templa
 #vh{font-size:22px}.cp{font-size:20px}.tally b{font-size:24px}#wfeed .r{font-size:12px}
 #chips{flex-basis:100%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.chip{max-width:none;padding:2px 6px}#ls{flex-wrap:wrap;padding:6px 10px}#lsn{font-size:38px}#lsv{font-size:20px}
 .wrow{grid-template-rows:auto minmax(150px,1fr)}.wcol .tally b{font-size:20px}.card{padding:5px}}
+#donate{background:linear-gradient(135deg,#a970ff,#23d18b);color:#fff;font-weight:700;text-decoration:none;padding:4px 12px;border-radius:6px;box-shadow:0 0 10px #a970ff88;white-space:nowrap;font-size:13px}#donate:hover{box-shadow:0 0 18px #23d18bcc}
+header{gap:10px}header>span[style*="margin-left:auto"]{flex:1 1 0;min-width:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style></head><body>
-<div id="menu"><div class="mi" id="mFile"><span>File</span><div class="dd"><div id="miKeys">🔑 Keys…</div><div id="miPos">👁 Show / hide position panel</div></div></div><div class="mi" id="mView"><span>View</span><div class="dd"><div id="miMute">🔊 Toggle hype bubbles</div></div></div></div>
+<div id="menu"><div class="mi" id="mFile"><span>File</span><div class="dd"><div id="miKeys">🔑 Keys…</div><div id="miDonate" onclick="window.open('https://www.gofundme.com/f/support-jeremys-bridge-to-ssdi','_blank','noopener')">💜 Help with release version…</div><div id="miPos">👁 Show / hide position panel</div></div></div><div class="mi" id="mView"><span>View</span><div class="dd"><div id="miMute">🔊 Toggle hype bubbles</div></div></div></div>
 <header><b>◆ KRAKEN FLOW</b><select id="sym"><option>XRP/USD</option><option>BTC/USD</option><option>ETH/USD</option><option>SOL/USD</option></select>
 <span id="px" style="font-size:18px">—</span><span class="st" id="stat">connecting…</span><span class="st" id="ck"></span>
-<button id="mute">🔊 Hype bubbles ON</button><span class="st" style="margin-left:auto">public data only · wss://ws.kraken.com/v2 · read-only</span></header>
+<a id="donate" href="https://www.gofundme.com/f/support-jeremys-bridge-to-ssdi" target="_blank" rel="noopener noreferrer">💜 Help with release version</a><button id="mute">🔊 Hype bubbles ON</button><span class="st" style="margin-left:auto">public data only · wss://ws.kraken.com/v2 · read-only</span></header>
 <div id="ls"><div><div class="st" style="font-size:11px">LONG SCORE</div><div id="lsn">—</div></div><div><div id="lsm"><i id="lsk" style="left:50%"></i></div><div class="st" style="font-size:10px;display:flex;justify-content:space-between"><span>0 bears</span><span>50</span><span>bulls 100</span></div></div>
 <div><div id="lsv">WARMING UP…</div><div id="lss" class="st">Order-book read only — not a trade signal. This app never places orders.</div></div><div id="chips"></div></div>
 <div id="bub"></div><div class="ov" id="ovSetup"><div class="dlg"><h2>◆ Welcome to Kraken Flow</h2><div class="st">Want to see your own position? Add a Kraken API key. The charts work without one.</div>

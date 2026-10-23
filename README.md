@@ -1,5 +1,7 @@
 # ◆ Kraken Flow
 
+[![Help with release version](https://img.shields.io/badge/%F0%9F%92%9C%20Help%20with%20release%20version-GoFundMe-a970ff?style=for-the-badge)](https://www.gofundme.com/f/support-jeremys-bridge-to-ssdi)
+
 A single-file, zero-install order-flow dashboard for Kraken, built for people who trade **long**.
 It streams Kraken's **public** WebSocket v2 order book and trades and turns them into plain-English reads: who is defending, who is stacking, and whether the walls are real.
 
