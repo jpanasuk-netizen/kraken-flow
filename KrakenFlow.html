@@ -124,7 +124,7 @@ header b{text-shadow:0 0 14px #a970ffaa}
 <div class="p" id="walls"><h3>Walls — what big orders are doing <span class="st" id="wcount"></span> <span id="tgWall"></span> <span id="tgTrust"></span></h3>
 <div id="verdict"><div id="vh">WARMING UP…</div><div id="vs" class="st">Watching the book for big orders (walls). Needs ~10s.</div></div>
 <div class="wrow">
-<div class="wcol"><div class="cards"><div class="card" id="cFloor"><div class="cl">🟢 FLOOR · biggest bid wall</div><div class="cp" id="fP">—</div><div class="cm" id="fM"></div><div class="cs" id="fS"></div></div>
+<div class="wcol"><div class="cards"><div class="card" id="cFloor"><div class="cl">🟢 FLOOR · biggest bid wall</div><div class="cp" id="fP">—</div><div class="cm" id="fM"></div><div class="cs" id="fS"></div><div id="fB" style="font-size:11px;color:#b9b2cc;margin-top:2px"></div></div>
 <div class="card" id="cCeil"><div class="cl">🔴 CEILING · biggest ask wall</div><div class="cp" id="cP">—</div><div class="cm" id="cM"></div><div class="cs" id="cS"></div></div></div>
 <div class="tally"><div><span class="ti">➕</span><b id="tA">0</b><small>added</small></div><div><span class="ti">✖</span><b id="tP">0</b><small>pulled</small></div><div><span class="ti">🍽️</span><b id="tE">0</b><small>eaten*</small></div></div>
 <div class="st" style="font-size:11px;margin-top:6px">TRUST METER — do walls stay or vanish? (last 5 min)</div><div class="bar" style="height:16px;background:#ff9ad5"><i id="trb" style="background:var(--bid)"></i></div><div id="trt" style="font-weight:600;margin-top:2px"></div>
@@ -229,11 +229,12 @@ function scanWalls(){if(!bids.size||!avgQ)return;const mid=midP(),now=Date.now()
  const card=(side,id)=>{let best=null;for(const w of live)if(w.side===side&&(!best||w.qty*w.price>best.qty*best.price))best=w;
   const last=wHist.filter(e=>e.side===side&&now-e.died<15000).pop();const pre=id==='f'?'f':'c';
   if(best){const d=(best.price-mid)/mid*100;$(pre+'P').textContent='$'+fmt(best.price,P.p);$(pre+'M').textContent=`${usdK(best.qty*best.price)} · ${Math.abs(d).toFixed(2)}% ${d<0?'below':'above'} price`;
-   const st=best.near?['BEING TESTED','#ffd166']:['HOLDING',side==='b'?'var(--bid)':'var(--ask)'];$(pre+'S').textContent=st[0];$(pre+'S').style.color=st[1]}
+   const st=wStat(best,now);$(pre+'S').textContent=st[0];$(pre+'S').style.color=st[1];$(pre+'M').textContent=`${usdK(best.qty*best.price)} · ${dTxt(best.price,mid,P)}`}
   else{$(pre+'P').textContent='—';$(pre+'M').textContent='no big wall right now';$(pre+'S').textContent=''}
-  if(last&&(!best||last.died>best.born)){$(pre+'S').textContent=last.how==='eaten'?'JUST EATEN (est.)':'JUST PULLED';$(pre+'S').style.color=last.how==='eaten'?'#ffb547':'#ff9ad5'}
+  if(last&&(!best||last.died>best.born)){$(pre+'S').textContent=last.how==='eaten'?'BROKEN — eaten (est.)':(last.spoof?'PULLED — fake':'PULLED');$(pre+'S').style.color=last.how==='eaten'?'#ffb547':'#ff9ad5'}
   return best};
  const fl=card('b','f'),ce=card('a','c');
+ {const below=live.filter(w=>w.side==='b'&&fl&&w.price<fl.price).sort((a,b)=>b.price-a.price)[0];$('fB').textContent=fl?(below?`If it breaks → next floor $${fmt(below.price,P.p)} (${usdK(below.qty*below.price)})`:'If it breaks → no big floor below (to −0.6%)'):''}
  let vh,vs,vc;const p=v=>'$'+fmt(v,P.p);
  if(now-startT<10000){vh='WARMING UP…';vs='Watching the book for big orders (walls).';vc='#8a82a3'}
  else if(nP>=6&&nP>=2*(live.length+nE)){vh='FAKE WALLS — big orders keep getting pulled';vs=`${nP} walls pulled in 5 min vs ${live.length} still standing. Don't trust the walls you see; watch actual trades.`;vc='#ffd166'}
@@ -244,27 +245,57 @@ function scanWalls(){if(!bids.size||!avgQ)return;const mid=midP(),now=Date.now()
  $('vh').textContent=vh;$('vh').style.color=vc;$('vs').textContent=vs;$('verdict').style.borderColor=vc;
  $('wcount').textContent=`· ${live.length} live walls`}
 let startT=Date.now();setInterval(scanWalls,250);
-function drawWalls(){const mid=midP();if(!mid)return;const P=prec[sym]||{p:4},now=Date.now(),lo=mid*(1-RNG),hi=mid*(1+RNG);
- {const[x,w,h]=cv('wmap');const Y=p=>h-(p-lo)/(hi-lo)*h,cx=w/2;const top=[...['b','a']].flatMap(sd=>[...walls.values()].filter(v=>v.conf&&v.side===sd).sort((a,b)=>b.qty*b.price-a.qty*a.price).slice(0,3));let mx=1;for(const v of top)mx=Math.max(mx,v.qty*v.price);
-  x.fillStyle='#0d0b14';x.fillRect(0,0,w,h);x.font='11px Consolas';x.textAlign='center';
-  for(let i=-4;i<=4;i+=2){const p=mid*(1+i*RNG/4.5),y=Y(p);x.strokeStyle='#2a2140';x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke();x.fillStyle='#8a82a3';x.fillText(fmt(p,P.p),cx,y-2)}
-  x.fillStyle='#a970ff';x.fillRect(0,Y(mid)-1,w,2);x.fillText('◆ '+fmt(mid,P.p),cx,Y(mid)-5);
-  const half=Math.max(20,w/2-90);
-  for(const v of top){const y=Y(v.price),L=Math.max(4,v.qty*v.price/mx*half),bid=v.side==='b',col=bid?'35,209,139':'255,77,109';
-   const age=now-Math.max(v.flash,v.grow||0),glow=Math.max(0,1-age/1500),pulse=v.near?(.5+.5*Math.sin(now/120)):0;
-   x.shadowColor=`rgb(${col})`;x.shadowBlur=18*glow+12*pulse;x.fillStyle=`rgba(${col},${.55+.45*glow})`;
-   const X0=bid?cx-38-L:cx+38;x.fillRect(X0,y-5,L,10);x.shadowBlur=0;
-   x.fillStyle='#fff';x.textAlign=bid?'right':'left';x.fillText(usdK(v.qty*v.price),bid?X0-4:X0+L+4,y+4);
-   if(v.near){x.fillStyle='#ff9ad5';x.fillText(' price testing',bid?X0-60:X0+L+50,y+4)}
-   if(now-v.born<6000&&glow>0){x.fillStyle=`rgba(255,255,255,${glow})`;x.fillText('NEW',bid?X0+L-2:X0+2,y-7)}}
-  x.textAlign='center';
-  for(const e of wHist){const a=1-(now-e.died)/3500;if(a<=0)continue;const y=Y(e.price),bid=e.side==='b',L=Math.max(4,e.peak*e.price/mx*half),X0=bid?cx-38-L:cx+38;
-   if(e.how==='pulled'){const sh=(1-a)*14;x.fillStyle=`rgba(169,112,255,${a*.5})`;for(let k=0;k<6;k++)x.fillRect(X0+k*L/6+(k-3)*sh,y-5+(k%2?sh:-sh)/2,L/6-2,10);
-    x.strokeStyle=`rgba(255,77,109,${a})`;x.lineWidth=3;const mxp=X0+L/2;x.beginPath();x.moveTo(mxp-8,y-8);x.lineTo(mxp+8,y+8);x.moveTo(mxp+8,y-8);x.lineTo(mxp-8,y+8);x.stroke();x.lineWidth=1;
-    x.fillStyle=`rgba(255,154,213,${a})`;x.fillText(e.spoof?'FAKE?':'PULLED',mxp,y-11)}
-   else{x.fillStyle=`rgba(255,181,71,${a*.7})`;x.fillRect(X0,y-5,L*a,10);x.fillStyle=`rgba(255,181,71,${a})`;x.fillText('EATEN',X0+L/2,y-9)}}
-  x.fillStyle='#8a82a3';x.textAlign='left';x.fillText('◀ FLOORS (top 3 bids)',4,12);x.textAlign='right';x.fillText('CEILINGS (top 3 asks) ▶',w-4,12);x.textAlign='center';x.fillStyle='#8a82a3';x.fillText('bar = $ size · purple line = price · ✖ pulled · orange = eaten (est.)',w/2,h-4);x.textAlign='left'}
-}
+const ago=s=>s<60?Math.round(s)+'s':s<3600?Math.floor(s/60)+'m'+(s%60>=10&&s<600?String(Math.floor(s%60)).padStart(2,'0')+'s':''):Math.floor(s/3600)+'h';
+const dTxt=(p,mid,P)=>{const d=(p-mid)/mid*100,ab=Math.abs(p-mid);return `${d<0?'−':'+'}${Math.abs(d).toFixed(2)}% · ${ab<1?(ab*100).toFixed(1)+'¢':'$'+ab.toFixed(ab<100?2:0)} ${d<0?'below':'above'}`};
+function wStat(v,now){const age=(now-v.born)/1000;if(v.near)return['UNDER FIRE','#ffd166',2];if(v.qty<v.peak*.6)return['THINNING','#ff9ad5',1];if(v.grow&&now-v.grow<8000)return['GROWING','#7dffb8',3];if(age<30)return['UNPROVEN','#b9b2cc',0];return[(v.side==='b'?'SOLID FLOOR':'SOLID CEILING')+' · '+ago(age),v.side==='b'?'#23d18b':'#ff4d6d',3]}
+function drawWalls(){const mid=midP();if(!mid)return;const P=prec[sym]||{p:4},now=Date.now();let lo=mid*(1-RNG),hi=mid*(1+RNG);
+ const[x,w,h]=cv('wmap');const T=26,B=h-48,Y=p=>B-(p-lo)/(hi-lo)*(B-T),ym=Y(mid),G=58;
+ const live=[...walls.values()].filter(v=>v.conf&&v.price>=lo&&v.price<=hi);
+ const fl=live.filter(v=>v.side==='b').sort((a,b)=>b.qty*b.price-a.qty*a.price).slice(0,3),ce=live.filter(v=>v.side==='a').sort((a,b)=>b.qty*b.price-a.qty*a.price).slice(0,2);
+ let mx=1,md=0;for(const v of fl.concat(ce)){mx=Math.max(mx,v.qty*v.price);md=Math.max(md,Math.abs(v.price-mid)/mid)}
+ const tgt=Math.min(RNG,Math.max(.0025,md*1.4));drawWalls.z=drawWalls.z?drawWalls.z+(tgt-drawWalls.z)*.15:tgt;const Z=drawWalls.z;lo=mid*(1-Z);hi=mid*(1+Z);const ghosts=wHist.filter(e=>e.price>=lo&&e.price<=hi&&now-e.died<4000).slice(-3);
+ x.fillStyle='#0b0911';x.fillRect(0,0,w,h);x.font='11px Consolas';x.textBaseline='middle';
+ // zones: green cushion down to nearest floor, red lid up to nearest ceiling
+ const nf=fl.slice().sort((a,b)=>b.price-a.price)[0],nc=ce.slice().sort((a,b)=>a.price-b.price)[0];
+ if(nf){const g=x.createLinearGradient(0,ym,0,Y(nf.price));g.addColorStop(0,'rgba(35,209,139,0)');g.addColorStop(1,'rgba(35,209,139,.16)');x.fillStyle=g;x.fillRect(G,ym,w-G,Y(nf.price)-ym)}
+ else{x.fillStyle='rgba(255,77,109,.06)';x.fillRect(G,ym,w-G,B-ym)}
+ if(nc){const g=x.createLinearGradient(0,ym,0,Y(nc.price));g.addColorStop(0,'rgba(255,77,109,0)');g.addColorStop(1,'rgba(255,77,109,.13)');x.fillStyle=g;x.fillRect(G,Y(nc.price),w-G,ym-Y(nc.price))}
+ // elevator shaft + scale
+ x.fillStyle='#15111f';x.fillRect(G-8,T,6,B-T);x.textAlign='right';
+ const stp=Z>.004?.002:Z>.002?.001:.0005;for(let i=-Math.floor(Z/stp);i<=Math.floor(Z/stp);i++){const f=i*stp,y=Y(mid*(1+f));if(y<T||y>B)continue;x.strokeStyle='#221b33';x.beginPath();x.moveTo(G,y);x.lineTo(w,y);x.stroke();x.fillStyle=i<0?'#5fae8c':i>0?'#b06478':'#8a82a3';x.fillText((i>0?'+':i<0?'−':'')+Math.abs(f*100).toFixed(2)+'%',G-12,y)}
+ // slabs
+ const half=Math.max(40,(w-G-270)),lab=[];
+ const slab=(v,ghost)=>{const bid=v.side==='b',$v=(ghost?v.peak:v.qty)*v.price,r=Math.sqrt($v/mx),L=Math.max(18,r*half),th=Math.round(5+r*11),col=bid?'35,209,139':'255,77,109';
+  let y=Y(v.price),sx=0;const st=ghost?null:wStat(v,now);if(st&&st[0]==='UNDER FIRE')sx=Math.sin(now/40)*2.5;
+  const fresh=Math.max(0,1-(now-Math.max(v.flash||0,v.grow||0))/1500);
+  if(!ghost){const tr=st[2],a=tr===0?.45+.25*Math.sin(now/90):tr===1?.55:.85;
+   x.fillStyle=`rgba(${col},${.12+.25*fresh})`;x.fillRect(G+sx-3,y-th/2-3,L+6,th+6);// cheap halo
+   x.fillStyle=`rgba(${col},${a})`;x.fillRect(G+sx,y-th/2,L,th);x.fillStyle='rgba(255,255,255,.35)';x.fillRect(G+sx,y-th/2,L,1.5);
+   if(v.qty<v.peak){x.strokeStyle=`rgba(${col},.5)`;x.setLineDash([3,3]);x.strokeRect(G+sx,y-th/2,Math.max(L,Math.min(half,Math.sqrt(v.peak*v.price/mx)*half)),th);x.setLineDash([])}
+   if(tr<=1){x.strokeStyle='rgba(11,9,17,.9)';x.lineWidth=1.5;x.beginPath();for(let k=1;k<5;k++){const cx=G+sx+L*k/5+((v.price*1e4*k)%7)-3;x.moveTo(cx,y-th/2);x.lineTo(cx+4,y);x.lineTo(cx-2,y+th/2)}x.stroke();x.lineWidth=1}
+   lab.push({y,v,st,L,$v})}
+  else{const a=1-(now-v.died)/4000;if(a<=0)return;const sp=(1-a)*24;
+   for(let k=0;k<6;k++){x.fillStyle=v.how==='eaten'?`rgba(255,${120-60*(1-a)},71,${a})`:`rgba(169,112,255,${a*.6})`;x.fillRect(G+k*L/6+(k-2.5)*sp*.6,y-th/2+(v.how==='eaten'?sp*(k%3+1)*.5:(k%2?sp:-sp)*.3),L/6-2,th)}
+   x.fillStyle=`rgba(255,255,255,${a})`;x.textAlign='left';x.font='bold 12px Segoe UI';if(!fl.concat(ce).some(o=>Math.abs(Y(o.price)-y)<16))x.fillText(v.how==='eaten'?(bid?'💥 FLOOR BROKEN — sellers ate it':'💥 CEILING BROKEN — bulls ate it'):(v.spoof?'👻 PULLED — fake':'✖ PULLED')+` after ${ago(v.life)}`,G+8,y-th/2-8);x.font='11px Consolas'}};
+ for(const e of ghosts)slab(e,true);
+ for(const v of fl.concat(ce))slab(v,false);
+ // labels with collision nudge
+ lab.sort((a,b)=>a.y-b.y);let last=-99;for(const l of lab){if(l.y<last+25)l.y=last+25;last=l.y}let lim=B-12;for(let i=lab.length-1;i>=0;i--){if(lab[i].y>lim)lab[i].y=lim;lim=lab[i].y-25}
+ for(const l of lab){const v=l.v,bid=v.side==='b',lx=G+half+14,sy=Y(v.price);x.strokeStyle=bid?'rgba(35,209,139,.5)':'rgba(255,77,109,.5)';x.beginPath();x.moveTo(G+l.L+3,sy);x.lineTo(lx-8,sy);x.lineTo(lx-3,l.y);x.stroke();x.textAlign='left';
+  x.fillStyle=bid?'#bfffe0':'#ffc2cd';x.font='bold 13px Consolas';x.fillText(`$${fmt(v.price,P.p)}`,lx,l.y-6);const pw=x.measureText(`$${fmt(v.price,P.p)}`).width;
+  x.font='11px Consolas';x.fillStyle='#d6d0e6';x.fillText(`  ${usdK(l.$v)} · ${v.qty>=1e3?(v.qty/1e3).toFixed(1)+'K':v.qty.toFixed(0)} ${sym.split('/')[0]}`,lx+pw,l.y-6);
+  x.fillStyle='#8a82a3';x.fillText(dTxt(v.price,mid,P),lx,l.y+7);const dw=x.measureText(dTxt(v.price,mid,P)).width;
+  x.font='bold 10px Segoe UI';const cw=x.measureText(l.st[0]).width+10,cxp=lx+dw+8;x.fillStyle=l.st[1]+'33';x.fillRect(cxp,l.y+1,cw,13);x.strokeStyle=l.st[1];x.strokeRect(cxp+.5,l.y+1.5,cw-1,12);x.fillStyle=l.st[1];x.fillText(l.st[0],cxp+5,l.y+8);x.font='11px Consolas'}
+ // current price: glowing elevator car
+ const pul=.5+.5*Math.sin(now/300);x.fillStyle=`rgba(169,112,255,${.18+.12*pul})`;x.fillRect(G-10,ym-5,w-G+10,10);x.fillStyle='#c9a6ff';x.fillRect(G-10,ym-1,w-G+10,2);
+ x.fillStyle='#a970ff';x.fillRect(G-12,ym-9,10,18);x.textAlign='right';x.font='bold 12px Consolas';const nt=`▶ NOW $${fmt(mid,P.p)}`,nw=x.measureText(nt).width+12;x.fillStyle='#2a1f45';x.fillRect(w-nw-4,ym-9,nw,18);x.strokeStyle='#a970ff';x.strokeRect(w-nw-3.5,ym-8.5,nw-1,17);x.fillStyle='#fff';x.fillText(nt,w-10,ym);
+ // headers + verdict
+ x.font='bold 11px Segoe UI';x.textAlign='left';x.fillStyle='#ff8da1';x.fillText('▲ CEILINGS (sell walls) — lid on price',G,10);x.fillStyle='#7dffb8';x.fillText('▼ FLOORS (buy walls) — the net under you',G,B+9);
+ const nfs=fl.slice().sort((a,b)=>b.price-a.price),nx=nfs[1];let vt,vc;
+ if(!nf){vt='BAD FOR LONGS · no floor within −0.6%';drawWalls.b='nothing big catching a dip — tight risk';vc='#ff4d6d'}
+ else{const st=wStat(nf,now)[0];const brk=nx?`if $${fmt(nf.price,P.p)} breaks → next floor $${fmt(nx.price,P.p)} (${((nx.price-mid)/mid*100).toFixed(2)}%)`:`if $${fmt(nf.price,P.p)} breaks → no net below to −0.6%`;
+  const good=nf.qty>=nf.peak*.6&&(now-nf.born>30000)&&(!nc||nf.qty*nf.price>=nc.qty*nc.price*.8);vt=`${good?'GOOD':nf.near||nf.qty<nf.peak*.6?'RISKY':'NEUTRAL'} FOR LONGS · nearest floor ${usdK(nf.qty*nf.price)} at ${dTxt(nf.price,mid,P).split(' · ')[0]} · ${st}`;drawWalls.b=brk;vc=good?'#23d18b':nf.near||nf.qty<nf.peak*.6?'#ffd166':'#b9b2cc'}
+ x.fillStyle=vc+'22';x.fillRect(0,h-30,w,30);x.fillStyle=vc;x.fillRect(0,h-30,3,30);x.font='bold 12px Segoe UI';x.fillText(vt,8,h-21);x.font='11px Segoe UI';x.fillStyle='#d6d0e6';x.fillText(drawWalls.b,8,h-8);x.textBaseline='alphabetic';x.font='11px Consolas';x.textAlign='left'}
 
 // ===== LONG MODE: tags, score, hype bubbles (read-only; never places orders) =====
 let muted=localStorage.kfMute==='1';const mb=$('mute');const setM=()=>mb.textContent=muted?'🔇 Hype bubbles OFF':'🔊 Hype bubbles ON';setM();mb.onclick=()=>{muted=!muted;localStorage.kfMute=muted?'1':'0';setM()};
