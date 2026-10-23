@@ -1,8 +1,6 @@
 @echo off
 rem Kraken Flow - public order-book viewer. Optional read-only position helper (needs Python).
+rem Hidden launcher: kills old helpers, starts one hidden helper, opens the app, stops the helper when the window closes.
 set "D=%~dp0"
-set "F=%D%KrakenFlow.html"
-where python >nul 2>nul
-if not errorlevel 1 if exist "%D%position_server.py" start "Kraken Flow position helper (read-only)" /min python "%D%position_server.py"
-start "" msedge --app="file:///%F:\=/%" --window-size=3440,1400 --user-data-dir="%LOCALAPPDATA%\KrakenFlowProfile"
-if errorlevel 1 start "" "%F%"
+if exist "%D%launcher.vbs" (start "" wscript.exe "%D%launcher.vbs" & exit /b)
+start "" msedge --app="file:///%D:\=/%KrakenFlow.html" --window-position=4385,0 --window-size=1615,1392 --user-data-dir="%LOCALAPPDATA%\KrakenFlowProfile"

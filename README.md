@@ -29,13 +29,14 @@ It streams Kraken's **public** WebSocket v2 order book and trades and turns them
 ## Run
 - **Any OS:** open `KrakenFlow.html` in a Chromium-based browser (Chrome or Edge).
 - **Windows app window:** double-click `Kraken Flow.bat`. It opens Edge in app mode next to the HTML file. `KrakenFlow.ico` can be used as the icon for a shortcut.
+  The launcher (`launcher.vbs` → `launcher.ps1`) runs hidden: it stops any old `position_server.py`, starts exactly one helper with `pythonw` (no console window), opens the app, and shuts the helper down when the Kraken Flow window closes. For a desktop shortcut, point it at `wscript.exe "<folder>\launcher.vbs"` with `KrakenFlow.ico` as the icon.
 
 No build and no dependencies. The charts need no API keys.
 
 ## Optional: see your own position
 1. On Kraken, go to **Settings → API** and create a key with **query-only** permissions: *Query Funds*, *Query Open Orders & Trades* and *Query Closed Orders & Trades*. Do **not** give it trade, withdraw or deposit permissions.
 2. Either copy `.env.example` to `.env` and paste your key and secret, **or** skip this step and enter them in the app's setup screen or **File → Keys…**.
-3. Run `python position_server.py` (Python 3.8+, standard library only). `Kraken Flow.bat` starts it automatically if Python is on your PATH.
+3. Run `python position_server.py` (Python 3.8+, standard library only). `Kraken Flow.bat` / `launcher.vbs` start it hidden automatically if Python is on your PATH, and stop it when the window closes.
 
 How the helper handles your keys:
 - It listens on **127.0.0.1:8787** only.
