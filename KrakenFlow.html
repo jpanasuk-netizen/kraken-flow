@@ -521,6 +521,19 @@ addEventListener('DOMContentLoaded',()=>document.querySelectorAll('#ctog b').for
 
 // ---- price chart: breakeven line + trend projection (1m closes, Kraken public OHLC + live mid) ----
 let pxM=[],pxSym='',pxErr='';const PXW=60,FIT=30,HZ=30;
+// Key levels from the XRP Hourly Report (edit here, or drop levels.json next to this file: {"XRP/USD":{"support":[..],"resistance":[..],"asOf":".."}}). Breakeven itself comes live from the position helper.
+let LEVELS={'XRP/USD':{asOf:'3 PM CT hourly report',support:[1.2834,1.28],resistance:[1.29,1.294]}};
+fetch('levels.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j&&typeof j==='object')LEVELS=j}).catch(()=>{});
+// multi-timeframe: Kraken public OHLC 60m + 15m, refreshed every 5 min
+let mtf={sym:'',h:null,q:null,t:0};
+function ema(a,n){const k=2/(n+1);let e=a[0];for(const v of a)e=v*k+e*(1-k);return e}
+function slp(a){const n=a.length;let sx=0,sy=0,sxx=0,sxy=0;a.forEach((v,i)=>{sx+=i;sy+=v;sxx+=i*i;sxy+=i*v});return(n*sxy-sx*sy)/(n*sxx-sx*sx||1)}
+async function mtfLoad(){const sy=sym;try{const g=async iv=>{const r=await fetch('https://api.kraken.com/0/public/OHLC?pair='+sy.replace('/','')+'&interval='+iv,{cache:'no-store'});const j=await r.json();const k=Object.keys(j.result||{}).find(z=>z!=='last');return(j.result[k]||[]).map(c=>({o:+c[1],h:+c[2],l:+c[3],c:+c[4]}))};
+ const[H,Q]=await Promise.all([g(60),g(15)]);if(sy!==sym)return;
+ const tf=(d,n)=>{const c=d.slice(-n).map(z=>z.c),s=slp(c),e=ema(c,Math.ceil(n/2)),last=c[c.length-1],lw=d.slice(-4,-1).map(z=>z.l),hl=lw.length===3&&lw[0]<lw[1]&&lw[1]<lw[2],ll=lw.length===3&&lw[0]>lw[1]&&lw[1]>lw[2],gr=d.slice(-4,-1).filter(z=>z.c>z.o).length;
+  const pct=s/last*100;let dir=pct>0.05||(hl&&last>e)?1:pct<-0.05||(ll&&last<e)?-1:0;return{s,pct,e,hl,ll,gr,dir}};
+ mtf={sym:sy,h:tf(H,8),q:tf(Q,12),t:Date.now()}}catch(e){}}
+setInterval(()=>{if(mtf.sym!==sym||Date.now()-mtf.t>300000)mtfLoad()},5000);mtfLoad();
 async function pxSeed(){const sy=sym;pxSym=sy;pxM=[];try{const r=await fetch('https://api.kraken.com/0/public/OHLC?pair='+sy.replace('/','')+'&interval=1',{cache:'no-store'});const j=await r.json();const k=Object.keys(j.result||{}).find(z=>z!=='last');if(sy!==sym)return;pxM=(j.result[k]||[]).slice(-PXW-1).map(c=>[c[0]/60|0,+c[4]]);pxErr=''}catch(e){pxErr='history unavailable — building from live'}}
 {const _s=start;start=function(){_s.apply(this,arguments);if(pxSym!==sym)pxSeed()}}
 function pxBE(){const p=rxPos;if(!p||p==='none'||!p.size)return null;const b=sym.split('/')[0];if(!String(p.pair).includes(b))return null;const fee=+p.fees||0,long=p.side!=='short';return{be:(p.cost+(long?fee:-fee))/p.size,long,feeIn:fee>0}}
@@ -528,17 +541,20 @@ function pxFit(){const n=Math.min(FIT,pxM.length);if(n<5)return null;const d=pxM
 function drawPx(){const m=midP();if(!m||pxSym!==sym)return;const k=Date.now()/60000|0,L=pxM[pxM.length-1];if(L&&L[0]===k)L[1]=m;else{pxM.push([k,m]);if(pxM.length>PXW+5)pxM.shift()}
  const P=prec[sym]||{p:5},[x,w,h]=cv('pxc');x.fillStyle='#0b0911';x.fillRect(0,0,w,h);const f=pxFit(),B=pxBE(),pad=16,R=110,cw=(w-R)/(PXW+HZ),X=kk=>(PXW+(kk-k))*cw;
  let lo=Infinity,hi=-Infinity;for(const[,v]of pxM){lo=Math.min(lo,v);hi=Math.max(hi,v)}
- let p15,p30,s15,s30;if(f){p15=m+f.sl*15;p30=m+f.sl*30;s15=f.sd*Math.sqrt(15);s30=f.sd*Math.sqrt(30);lo=Math.min(lo,p30-s30,p15-s15);hi=Math.max(hi,p30+s30,p15+s15)}
+ let p15,p30,s15,s30;const mh=mtf.sym===sym?mtf:null;if(f&&mh&&mh.h){f.s1=f.sl;f.sl=0.65*mh.h.s/60+0.2*mh.q.s/15+0.15*f.s1}if(f){p15=m+f.sl*15;p30=m+f.sl*30;s15=f.sd*Math.sqrt(15);s30=f.sd*Math.sqrt(30);lo=Math.min(lo,p30-s30,p15-s15);hi=Math.max(hi,p30+s30,p15+s15)}
  const span=hi-lo||m*.001;let beOn=false;if(B&&B.be>lo-span*1.5&&B.be<hi+span*1.5){lo=Math.min(lo,B.be);hi=Math.max(hi,B.be);beOn=true}
  const sp=(hi-lo)*.08||m*.0005;lo-=sp;hi+=sp;const Y=v=>pad+(hi-v)/(hi-lo)*(h-pad*2);
  x.font='10px Consolas';x.fillStyle='#8a82a3';x.textAlign='left';for(let i=0;i<=3;i++){const v=lo+(hi-lo)*i/3,y=Y(v);x.strokeStyle='rgba(138,130,163,.12)';x.beginPath();x.moveTo(0,y);x.lineTo(w-R,y);x.stroke();x.fillText(fmt(v,P.p),2,y-2)}
  const xn=X(k);x.strokeStyle='rgba(169,112,255,.35)';x.setLineDash([2,3]);x.beginPath();x.moveTo(xn,0);x.lineTo(xn,h);x.stroke();x.setLineDash([]);x.textAlign='center';x.fillStyle='#8a82a3';for(const t of[-60,-30,15,30])x.fillText((t>0?'+':'')+t+'m',X(k+t),h-3);x.fillText('now',xn,h-3);
+ // key levels from hourly report (dashed, labelled on right)
+ {const Lv=LEVELS[sym];if(Lv){x.font='9px Consolas';x.textAlign='right';for(const[a,c,t]of[[Lv.support||[],'35,209,139','S'],[Lv.resistance||[],'255,176,32','R']])for(const v of a){if(v<lo||v>hi)continue;const y=Y(v);x.strokeStyle=`rgba(${c},.45)`;x.setLineDash([3,4]);x.beginPath();x.moveTo(0,y);x.lineTo(w-R,y);x.stroke();x.setLineDash([]);x.fillStyle=`rgb(${c})`;x.fillText(t+' '+fmt(v,P.p),w-R-4,y-2)}}}
  // price line
  x.strokeStyle='#d9d3ee';x.lineWidth=1.6;x.beginPath();pxM.forEach(([kk,v],i)=>{const px=X(kk),py=Y(v);i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();x.lineWidth=1;
  let note='';if(f){const up=f.sl>=0,col=up?'35,209,139':'255,77,109';x.fillStyle=`rgba(${col},.13)`;x.beginPath();x.moveTo(xn,Y(m));x.lineTo(X(k+15),Y(p15+s15));x.lineTo(X(k+30),Y(p30+s30));x.lineTo(X(k+30),Y(p30-s30));x.lineTo(X(k+15),Y(p15-s15));x.closePath();x.fill();
   x.strokeStyle=`rgb(${col})`;x.lineWidth=2;x.setLineDash([7,5]);x.beginPath();x.moveTo(xn,Y(m));x.lineTo(X(k+30),Y(p30));x.stroke();x.setLineDash([]);x.lineWidth=1;x.fillStyle=`rgb(${col})`;for(const[t,v]of[[15,p15],[30,p30]]){x.beginPath();x.arc(X(k+t),Y(v),3,0,7);x.fill();x.textAlign='center';x.font='bold 10px Consolas';x.fillText(fmt(v,P.p),X(k+t),Y(v)-(up?8:-14))}
   x.font='10px Consolas';x.textAlign='left';x.fillText(`TREND PROJECTION · not a prediction`,xn+6,h-16);
-  note=`Where it's going (if the last ${f.n}m pace holds): ${up?'▲':'▼'} ${fmt(p15,P.p)} at +15m, ${fmt(p30,P.p)} at +30m (${(f.sl/m*100*60).toFixed(2)}%/hr, band ±1σ of 1m moves). ${up?'GOOD':'BAD'} FOR LONGS.`}
+  const dn=d=>d>0?'UP ▲':d<0?'DOWN ▼':'FLAT ■';let mt='';if(mh&&mh.h){const hd=mh.h.dir,w1=f.s1>0?(hd<0?'bounce':'push'):f.s1<0?(hd>0?'pullback':'push'):'flat';mt=`HOURLY: ${dn(hd)}${mh.h.hl?' (higher lows)':mh.h.ll?' (lower lows)':''} · 15m: ${dn(mh.q.dir)} · 1m: ${w1}`;x.font='bold 11px Consolas';x.textAlign='left';const ht=mt+(hd>0?' · GOOD FOR LONGS':hd<0?' · BAD FOR LONGS':' · NEUTRAL FOR LONGS'),hw=x.measureText(ht).width;x.fillStyle='rgba(11,9,17,.85)';x.fillRect(2,h-44,hw+10,16);x.fillStyle=hd>0?'#23d18b':hd<0?'#ff4d6d':'#ffb020';x.fillText(ht,7,h-32)}
+  x.font='10px Consolas';note=`${mt?mt+' — ':''}Where it's going (blend: 65% hourly · 20% 15m · 15% last ${f.n}m): ${up?'▲':'▼'} ${fmt(p15,P.p)} at +15m, ${fmt(p30,P.p)} at +30m (${(f.sl/m*100*60).toFixed(2)}%/hr, band ±1σ of 1m moves). ${up?'GOOD':'BAD'} FOR LONGS.`}
  let tag='N';if(B){const d=(B.be-m)/m*100,above=B.long?m>=B.be:m<=B.be,col=above?'#23d18b':m<B.be*0.99?'#ff4d6d':'#ffb020',lab=`BREAKEVEN ${fmt(B.be,P.p)} · ${d>=0?'+':''}${d.toFixed(2)}% away${B.feeIn?'':' · fees n/a'}`;tag=above?'G':'B';
   let hitTxt='';if(f){const gap=B.be-m;if(above){const t=f.sl&&Math.sign(f.sl)===Math.sign(gap)?gap/f.sl:Infinity;hitTxt=t<=HZ?`⚠️ at this pace price falls back to BE in ~${Math.max(1,Math.round(t))}m`:'holding above BE at this pace'}else{const t=f.sl&&Math.sign(f.sl)===Math.sign(gap)?gap/f.sl:Infinity;hitTxt=t<=HZ?`🎯 hits BE in ~${Math.max(1,Math.round(t))}m at this pace`:'not reaching BE at this pace'}}
   x.font='bold 11px Consolas';if(beOn){const y=Y(B.be);x.strokeStyle=col;x.lineWidth=2.5;x.shadowColor=col;x.shadowBlur=8;x.beginPath();x.moveTo(0,y);x.lineTo(w-R,y);x.stroke();x.shadowBlur=0;x.lineWidth=1;const tw=x.measureText(lab).width+12,ty=Math.min(Math.max(y,pad+2),h-pad-2),tx=Math.max(40,(w-R)/2-tw/2);x.fillStyle=col;x.fillRect(tx,ty-17,tw,15);x.fillStyle='#0b0911';x.textAlign='left';x.fillText(lab,tx+6,ty-6)}
