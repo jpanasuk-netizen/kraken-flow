@@ -528,11 +528,40 @@ fetch('levels.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j&&typeof 
 let mtf={sym:'',h:null,q:null,t:0};
 function ema(a,n){const k=2/(n+1);let e=a[0];for(const v of a)e=v*k+e*(1-k);return e}
 function slp(a){const n=a.length;let sx=0,sy=0,sxx=0,sxy=0;a.forEach((v,i)=>{sx+=i;sy+=v;sxx+=i*i;sxy+=i*v});return(n*sxy-sx*sy)/(n*sxx-sx*sx||1)}
-async function mtfLoad(){const sy=sym;try{const g=async iv=>{const r=await fetch('https://api.kraken.com/0/public/OHLC?pair='+sy.replace('/','')+'&interval='+iv,{cache:'no-store'});const j=await r.json();const k=Object.keys(j.result||{}).find(z=>z!=='last');return(j.result[k]||[]).map(c=>({o:+c[1],h:+c[2],l:+c[3],c:+c[4]}))};
- const[H,Q]=await Promise.all([g(60),g(15)]);if(sy!==sym)return;
+async function mtfLoad(){const sy=sym;try{const g=async iv=>{const r=await fetch('https://api.kraken.com/0/public/OHLC?pair='+sy.replace('/','')+'&interval='+iv,{cache:'no-store'});const j=await r.json();const k=Object.keys(j.result||{}).find(z=>z!=='last');return(j.result[k]||[]).map(c=>({t:+c[0],o:+c[1],h:+c[2],l:+c[3],c:+c[4]}))};
+ const[H,Q,M]=await Promise.all([g(60),g(15),g(1)]);if(sy!==sym)return;
  const tf=(d,n)=>{const c=d.slice(-n).map(z=>z.c),s=slp(c),e=ema(c,Math.ceil(n/2)),last=c[c.length-1],lw=d.slice(-4,-1).map(z=>z.l),hl=lw.length===3&&lw[0]<lw[1]&&lw[1]<lw[2],ll=lw.length===3&&lw[0]>lw[1]&&lw[1]>lw[2],gr=d.slice(-4,-1).filter(z=>z.c>z.o).length;
   const pct=s/last*100;let dir=pct>0.05||(hl&&last>e)?1:pct<-0.05||(ll&&last<e)?-1:0;return{s,pct,e,hl,ll,gr,dir}};
- mtf={sym:sy,h:tf(H,8),q:tf(Q,12),t:Date.now()}}catch(e){}}
+ const pats=[...detPats(H.slice(0,-0||undefined),'1h',1),...detPats(Q,'15m',1),...detPats(M.slice(-180),'1m',0)];
+ mtf={sym:sy,h:tf(H,8),q:tf(Q,12),pats,atr15:Q.slice(-20).reduce((a,z)=>a+z.h-z.l,0)/20,t:Date.now()}}catch(e){}}
+// ---- chart-pattern detector (swing pivots, computed on candle refresh only) ----
+// returns [{n,tf,dir(+1 bull/-1 bear/0),st:'forming'|'confirmed',lv:[levels],tg:target|null}]
+function detPats(d,tf,full){const out=[],n=d.length;if(n<30)return out;const c=d[n-1].c,ar=d.slice(-30).reduce((a,z)=>a+z.h-z.l,0)/30,tol=Math.max(ar*0.6,c*0.0008),K=2;
+ const PH=[],PL=[];for(let i=K;i<n-K;i++){let h=1,l=1;for(let j=1;j<=K;j++){if(d[i].h<d[i-j].h||d[i].h<d[i+j].h)h=0;if(d[i].l>d[i-j].l||d[i].l>d[i+j].l)l=0}if(h)PH.push({i,v:d[i].h});if(l)PL.push({i,v:d[i].l})}
+ const hs=PH.filter(p=>p.i>n-60),ls=PL.filter(p=>p.i>n-60),add=(nm,dir,st,lv,tg)=>out.push({n:nm,tf,dir,st,lv,tg});
+ // double bottom / top
+ if(ls.length>=2){const[a,b]=ls.slice(-2),mid=PH.filter(p=>p.i>a.i&&p.i<b.i);if(b.i-a.i>=4&&Math.abs(a.v-b.v)<=tol&&mid.length){const nk=Math.max(...mid.map(p=>p.v)),lo=Math.min(a.v,b.v);if(nk-lo>=tol*2&&c>lo-tol*0.5)add('DOUBLE BOTTOM',1,c>nk?'confirmed':'forming',[nk],c>nk?nk+(nk-lo):null)}}
+ if(hs.length>=2){const[a,b]=hs.slice(-2),mid=PL.filter(p=>p.i>a.i&&p.i<b.i);if(b.i-a.i>=4&&Math.abs(a.v-b.v)<=tol&&mid.length){const nk=Math.min(...mid.map(p=>p.v)),hi=Math.max(a.v,b.v);if(hi-nk>=tol*2&&c<hi+tol*0.5)add('DOUBLE TOP',-1,c<nk?'confirmed':'forming',[nk],c<nk?nk-(hi-nk):null)}}
+ if(!full)return flags();
+ // head & shoulders / inverse
+ if(hs.length>=3){const[a,b,e]=hs.slice(-3);if(b.v>a.v+tol&&b.v>e.v+tol&&Math.abs(a.v-e.v)<=tol*1.5){const nl=PL.filter(p=>p.i>a.i&&p.i<e.i);if(nl.length){const nk=Math.min(...nl.map(p=>p.v));add('HEAD & SHOULDERS',-1,c<nk?'confirmed':'forming',[nk],c<nk?nk-(b.v-nk):null)}}}
+ if(ls.length>=3){const[a,b,e]=ls.slice(-3);if(b.v<a.v-tol&&b.v<e.v-tol&&Math.abs(a.v-e.v)<=tol*1.5){const nl=PH.filter(p=>p.i>a.i&&p.i<e.i);if(nl.length){const nk=Math.max(...nl.map(p=>p.v));add('INVERSE H&S',1,c>nk?'confirmed':'forming',[nk],c>nk?nk+(nk-b.v):null)}}}
+ // triangles / wedges / channels from last 3 pivot highs & lows
+ if(hs.length>=3&&ls.length>=3){const H3=hs.slice(-3),L3=ls.slice(-3),fit=a=>{const m=a.length,xs=a.map(p=>p.i),ys=a.map(p=>p.v),mx=xs.reduce((q,v)=>q+v)/m,my=ys.reduce((q,v)=>q+v)/m;let u=0,w=0;xs.forEach((x,k)=>{u+=(x-mx)*(ys[k]-my);w+=(x-mx)**2});const s=u/(w||1);return{s,at:i=>my+s*(i-mx)}},U=fit(H3),D=fit(L3),fl=ar*0.08,ui=U.at(n-1),di=D.at(n-1),width0=U.at(Math.min(H3[0].i,L3[0].i))-D.at(Math.min(H3[0].i,L3[0].i)),width1=ui-di;
+  const conv=width1<width0*0.8,uf=Math.abs(U.s)<fl,df=Math.abs(D.s)<fl,brk=c>ui+tol*0.3?1:c<di-tol*0.3?-1:0,st=d=>brk===d?'confirmed':brk===0?'forming':null;let nm=null,dir=0;
+  if(uf&&D.s>fl){nm='ASCENDING TRIANGLE';dir=1}else if(df&&U.s<-fl){nm='DESCENDING TRIANGLE';dir=-1}else if(U.s<-fl&&D.s>fl){nm='SYMMETRIC TRIANGLE';dir=0}
+  else if(U.s>fl&&D.s>fl&&conv&&D.s>U.s){nm='RISING WEDGE';dir=-1}else if(U.s<-fl&&D.s<-fl&&conv&&U.s<D.s){nm='FALLING WEDGE';dir=1}
+  else if(U.s>fl&&D.s>fl){nm='HIGHER-LOWS CHANNEL';dir=1}else if(U.s<-fl&&D.s<-fl){nm='LOWER-HIGHS CHANNEL';dir=-1}
+  if(nm){const ch=nm.includes('CHANNEL');let s2=ch?(brk===-dir?'broken':'forming'):dir?st(dir):(brk?'confirmed':'forming'),d2=dir||brk;if(s2==='broken'){nm+=' (broken)';d2=-dir;s2='confirmed'}
+   if(s2){const h0=Math.abs(width0);add(nm,d2,s2,[ui,di],s2==='confirmed'&&!ch&&d2?(d2>0?ui+h0:di-h0):null)}}}
+ return flags();
+ function flags(){// pole = strong move over 8 bars, then 5-12 bar tight consolidation retracing <50%
+  for(const L of[6,8,10,12]){if(n<L+10)continue;const cs=d.slice(n-L),pb=d.slice(n-L-8,n-L),p0=pb[0].o,p1=pb[pb.length-1].c,pole=p1-p0,hi=Math.max(...cs.map(z=>z.h)),lo=Math.min(...cs.map(z=>z.l)),rg=hi-lo;
+   if(Math.abs(pole)<ar*4||rg>Math.abs(pole)*0.6)continue;const up=pole>0;if(up?lo<p1-pole*0.5:hi>p1-pole*0.5)continue;
+   const h1=cs.slice(0,L/2),h2=cs.slice(L/2),r1=Math.max(...h1.map(z=>z.h))-Math.min(...h1.map(z=>z.l)),r2=Math.max(...h2.map(z=>z.h))-Math.min(...h2.map(z=>z.l)),pen=r2<r1*0.6,dir=up?1:-1;
+   const lv=up?Math.max(...cs.slice(0,-1).map(z=>z.h)):Math.min(...cs.slice(0,-1).map(z=>z.l)),cf=up?c>lv:c<lv;
+   add((up?'BULL ':'BEAR ')+(pen?'PENNANT':'FLAG'),dir,cf?'confirmed':'forming',[lv],cf?lv+pole:null);break}
+  return out}}
 setInterval(()=>{if(mtf.sym!==sym||Date.now()-mtf.t>300000)mtfLoad()},5000);mtfLoad();
 async function pxSeed(){const sy=sym;pxSym=sy;pxM=[];try{const r=await fetch('https://api.kraken.com/0/public/OHLC?pair='+sy.replace('/','')+'&interval=1',{cache:'no-store'});const j=await r.json();const k=Object.keys(j.result||{}).find(z=>z!=='last');if(sy!==sym)return;pxM=(j.result[k]||[]).slice(-PXW-1).map(c=>[c[0]/60|0,+c[4]]);pxErr=''}catch(e){pxErr='history unavailable — building from live'}}
 {const _s=start;start=function(){_s.apply(this,arguments);if(pxSym!==sym)pxSeed()}}
@@ -541,20 +570,25 @@ function pxFit(){const n=Math.min(FIT,pxM.length);if(n<5)return null;const d=pxM
 function drawPx(){const m=midP();if(!m||pxSym!==sym)return;const k=Date.now()/60000|0,L=pxM[pxM.length-1];if(L&&L[0]===k)L[1]=m;else{pxM.push([k,m]);if(pxM.length>PXW+5)pxM.shift()}
  const P=prec[sym]||{p:5},[x,w,h]=cv('pxc');x.fillStyle='#0b0911';x.fillRect(0,0,w,h);const f=pxFit(),B=pxBE(),pad=16,R=110,cw=(w-R)/(PXW+HZ),X=kk=>(PXW+(kk-k))*cw;
  let lo=Infinity,hi=-Infinity;for(const[,v]of pxM){lo=Math.min(lo,v);hi=Math.max(hi,v)}
- let p15,p30,s15,s30;const mh=mtf.sym===sym?mtf:null;if(f&&mh&&mh.h){f.s1=f.sl;f.sl=0.65*mh.h.s/60+0.2*mh.q.s/15+0.15*f.s1}if(f){p15=m+f.sl*15;p30=m+f.sl*30;s15=f.sd*Math.sqrt(15);s30=f.sd*Math.sqrt(30);lo=Math.min(lo,p30-s30,p15-s15);hi=Math.max(hi,p30+s30,p15+s15)}
+ let p15,p30,s15,s30;const mh=mtf.sym===sym?mtf:null;if(f&&mh&&mh.h){f.s1=f.sl;f.sl=0.65*mh.h.s/60+0.2*mh.q.s/15+0.15*f.s1;const pc=(mh.pats||[]).filter(z=>z.st==='confirmed'&&z.dir).reduce((a,z)=>a+z.dir*(z.tf==='1h'?1:z.tf==='15m'?.6:.3),0);f.pn=Math.max(-1.5,Math.min(1.5,pc));f.sl+=f.pn*0.1*(mh.atr15||0)/15}if(f){p15=m+f.sl*15;p30=m+f.sl*30;s15=f.sd*Math.sqrt(15);s30=f.sd*Math.sqrt(30);lo=Math.min(lo,p30-s30,p15-s15);hi=Math.max(hi,p30+s30,p15+s15)}
  const span=hi-lo||m*.001;let beOn=false;if(B&&B.be>lo-span*1.5&&B.be<hi+span*1.5){lo=Math.min(lo,B.be);hi=Math.max(hi,B.be);beOn=true}
  const sp=(hi-lo)*.08||m*.0005;lo-=sp;hi+=sp;const Y=v=>pad+(hi-v)/(hi-lo)*(h-pad*2);
  x.font='10px Consolas';x.fillStyle='#8a82a3';x.textAlign='left';for(let i=0;i<=3;i++){const v=lo+(hi-lo)*i/3,y=Y(v);x.strokeStyle='rgba(138,130,163,.12)';x.beginPath();x.moveTo(0,y);x.lineTo(w-R,y);x.stroke();x.fillText(fmt(v,P.p),2,y-2)}
  const xn=X(k);x.strokeStyle='rgba(169,112,255,.35)';x.setLineDash([2,3]);x.beginPath();x.moveTo(xn,0);x.lineTo(xn,h);x.stroke();x.setLineDash([]);x.textAlign='center';x.fillStyle='#8a82a3';for(const t of[-60,-30,15,30])x.fillText((t>0?'+':'')+t+'m',X(k+t),h-3);x.fillText('now',xn,h-3);
  // key levels from hourly report (dashed, labelled on right)
  {const Lv=LEVELS[sym];if(Lv){x.font='9px Consolas';x.textAlign='right';for(const[a,c,t]of[[Lv.support||[],'35,209,139','S'],[Lv.resistance||[],'255,176,32','R']])for(const v of a){if(v<lo||v>hi)continue;const y=Y(v);x.strokeStyle=`rgba(${c},.45)`;x.setLineDash([3,4]);x.beginPath();x.moveTo(0,y);x.lineTo(w-R,y);x.stroke();x.setLineDash([]);x.fillStyle=`rgb(${c})`;x.fillText(t+' '+fmt(v,P.p),w-R-4,y-2)}}}
+ // chart-pattern badges + faint necklines / breakout lines + pattern target
+ {const mp=mtf.sym===sym&&mtf.pats||[];if(mp.length){x.font='bold 9px Consolas';let bx=4,by=pad+20;const srt=[...mp].sort((a,b)=>(b.st==='confirmed')-(a.st==='confirmed')||({'1h':0,'15m':1,'1m':2}[a.tf]-{'1h':0,'15m':1,'1m':2}[b.tf]));
+  for(const z of srt.slice(0,6)){const col=z.dir>0?'35,209,139':z.dir<0?'255,77,109':'255,176,32',t=`${z.n} ${z.tf} · ${z.st}`,tw=x.measureText(t).width+10;if(bx+tw>w-R-4){bx=4;by+=15}x.fillStyle=`rgba(${col},${z.st==='confirmed'?.9:.25})`;x.fillRect(bx,by-10,tw,13);x.fillStyle=z.st==='confirmed'?'#0b0911':`rgb(${col})`;x.textAlign='left';x.fillText(t,bx+5,by);bx+=tw+4
+   for(const v of z.lv){if(v<lo||v>hi)continue;const y=Y(v);x.strokeStyle=`rgba(${col},.22)`;x.setLineDash([1,3]);x.beginPath();x.moveTo(0,y);x.lineTo(w-R,y);x.stroke();x.setLineDash([])}}
+  const tg=srt.find(z=>z.tg&&z.st==='confirmed');if(tg){const col=tg.dir>0?'#23d18b':'#ff4d6d',lab=`PATTERN TARGET ${fmt(tg.tg,P.p)} (${tg.n} ${tg.tf} measured move · not a prediction)`;x.font='9px Consolas';x.textAlign='right';x.fillStyle=col;if(tg.tg>=lo&&tg.tg<=hi){const y=Y(tg.tg);x.strokeStyle=col;x.globalAlpha=.5;x.setLineDash([6,4]);x.beginPath();x.moveTo(X(k),y);x.lineTo(w-R,y);x.stroke();x.setLineDash([]);x.globalAlpha=1;x.fillText(lab,w-R-4,y-3)}else x.fillText((tg.tg>hi?'▲ ':'▼ ')+lab+' (off chart)',w-R-4,tg.tg>hi?pad+8:h-48)}}}
  // price line
  x.strokeStyle='#d9d3ee';x.lineWidth=1.6;x.beginPath();pxM.forEach(([kk,v],i)=>{const px=X(kk),py=Y(v);i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();x.lineWidth=1;
  let note='';if(f){const up=f.sl>=0,col=up?'35,209,139':'255,77,109';x.fillStyle=`rgba(${col},.13)`;x.beginPath();x.moveTo(xn,Y(m));x.lineTo(X(k+15),Y(p15+s15));x.lineTo(X(k+30),Y(p30+s30));x.lineTo(X(k+30),Y(p30-s30));x.lineTo(X(k+15),Y(p15-s15));x.closePath();x.fill();
   x.strokeStyle=`rgb(${col})`;x.lineWidth=2;x.setLineDash([7,5]);x.beginPath();x.moveTo(xn,Y(m));x.lineTo(X(k+30),Y(p30));x.stroke();x.setLineDash([]);x.lineWidth=1;x.fillStyle=`rgb(${col})`;for(const[t,v]of[[15,p15],[30,p30]]){x.beginPath();x.arc(X(k+t),Y(v),3,0,7);x.fill();x.textAlign='center';x.font='bold 10px Consolas';x.fillText(fmt(v,P.p),X(k+t),Y(v)-(up?8:-14))}
   x.font='10px Consolas';x.textAlign='left';x.fillText(`TREND PROJECTION · not a prediction`,xn+6,h-16);
   const dn=d=>d>0?'UP ▲':d<0?'DOWN ▼':'FLAT ■';let mt='';if(mh&&mh.h){const hd=mh.h.dir,w1=f.s1>0?(hd<0?'bounce':'push'):f.s1<0?(hd>0?'pullback':'push'):'flat';mt=`HOURLY: ${dn(hd)}${mh.h.hl?' (higher lows)':mh.h.ll?' (lower lows)':''} · 15m: ${dn(mh.q.dir)} · 1m: ${w1}`;x.font='bold 11px Consolas';x.textAlign='left';const ht=mt+(hd>0?' · GOOD FOR LONGS':hd<0?' · BAD FOR LONGS':' · NEUTRAL FOR LONGS'),hw=x.measureText(ht).width;x.fillStyle='rgba(11,9,17,.85)';x.fillRect(2,h-44,hw+10,16);x.fillStyle=hd>0?'#23d18b':hd<0?'#ff4d6d':'#ffb020';x.fillText(ht,7,h-32)}
-  x.font='10px Consolas';note=`${mt?mt+' — ':''}Where it's going (blend: 65% hourly · 20% 15m · 15% last ${f.n}m): ${up?'▲':'▼'} ${fmt(p15,P.p)} at +15m, ${fmt(p30,P.p)} at +30m (${(f.sl/m*100*60).toFixed(2)}%/hr, band ±1σ of 1m moves). ${up?'GOOD':'BAD'} FOR LONGS.`}
+  const pt=(mh&&mh.pats||[]).map(z=>`${z.n} ${z.tf} ${z.st}`).join(', ');x.font='10px Consolas';note=`${mt?mt+' — ':''}${pt?'Patterns: '+pt+(f.pn?` (confirmed nudge ${f.pn>0?'+':''}${f.pn.toFixed(1)})`:'')+' — ':''}Where it's going (blend: 65% hourly · 20% 15m · 15% last ${f.n}m): ${up?'▲':'▼'} ${fmt(p15,P.p)} at +15m, ${fmt(p30,P.p)} at +30m (${(f.sl/m*100*60).toFixed(2)}%/hr, band ±1σ of 1m moves). ${up?'GOOD':'BAD'} FOR LONGS.`}
  let tag='N';if(B){const d=(B.be-m)/m*100,above=B.long?m>=B.be:m<=B.be,col=above?'#23d18b':m<B.be*0.99?'#ff4d6d':'#ffb020',lab=`BREAKEVEN ${fmt(B.be,P.p)} · ${d>=0?'+':''}${d.toFixed(2)}% away${B.feeIn?'':' · fees n/a'}`;tag=above?'G':'B';
   let hitTxt='';if(f){const gap=B.be-m;if(above){const t=f.sl&&Math.sign(f.sl)===Math.sign(gap)?gap/f.sl:Infinity;hitTxt=t<=HZ?`⚠️ at this pace price falls back to BE in ~${Math.max(1,Math.round(t))}m`:'holding above BE at this pace'}else{const t=f.sl&&Math.sign(f.sl)===Math.sign(gap)?gap/f.sl:Infinity;hitTxt=t<=HZ?`🎯 hits BE in ~${Math.max(1,Math.round(t))}m at this pace`:'not reaching BE at this pace'}}
   x.font='bold 11px Consolas';if(beOn){const y=Y(B.be);x.strokeStyle=col;x.lineWidth=2.5;x.shadowColor=col;x.shadowBlur=8;x.beginPath();x.moveTo(0,y);x.lineTo(w-R,y);x.stroke();x.shadowBlur=0;x.lineWidth=1;const tw=x.measureText(lab).width+12,ty=Math.min(Math.max(y,pad+2),h-pad-2),tx=Math.max(40,(w-R)/2-tw/2);x.fillStyle=col;x.fillRect(tx,ty-17,tw,15);x.fillStyle='#0b0911';x.textAlign='left';x.fillText(lab,tx+6,ty-6)}
