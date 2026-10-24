@@ -96,6 +96,7 @@ header b{text-shadow:0 0 14px #a970ffaa}
 #tape .r{animation:tin .5s ease-out}@keyframes tin{from{background:#a970ff40;transform:translateX(-6px)}to{background:transparent;transform:none}}
 #verdict{box-shadow:0 0 18px #0008;transition:border-color .4s,box-shadow .4s}.cp{text-shadow:0 0 10px currentColor}
 .list::-webkit-scrollbar{width:6px}.list::-webkit-scrollbar-thumb{background:#2f2548;border-radius:3px}
+.bbig{font-size:28px;border:2px solid #fff8;max-width:680px}#wfeed{flex:1 1 0!important;min-height:0!important;height:0;overflow:auto}#wfeed .story .why{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}#wfeed .story{background:#a970ff14;border-left:3px solid #a970ff;padding-left:5px}#wfeed .story .tag{font-size:9px}
 </style></head><body>
 <div id="menu"><div class="mi" id="mFile"><span>File</span><div class="dd"><div id="miKeys">🔑 Keys…</div><div id="miDonate" onclick="window.open('https://www.gofundme.com/f/support-jeremys-bridge-to-ssdi','_blank','noopener')">💜 Help with release version…</div><div id="miPos">👁 Show / hide position panel</div></div></div><div class="mi" id="mView"><span>View</span><div class="dd"><div id="miMute">🔊 Toggle hype bubbles</div></div></div></div>
 <header><b>◆ KRAKEN FLOW</b><select id="sym"><option>XRP/USD</option><option>BTC/USD</option><option>ETH/USD</option><option>SOL/USD</option></select>
@@ -200,31 +201,35 @@ setInterval(()=>{if(!bids.size)return;imbH.push([within(.005),within(.01)]);if(i
 // ===== WALL ENGINE (public book + trades only) =====
 let added=[],walls=new Map(),wHist=[],midH=[],recentTr=[];const TL=300000,RNG=0.006;
 const usdK=v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+(v/1e3).toFixed(0)+'K';
-function wfeed(icon,txt,col,why){const d=document.createElement('div');d.className='r';d.innerHTML=`<span class="st">${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'})}</span> <span style="color:${col};font-weight:600">${icon} ${txt}</span><span class="why">→ ${why||''}</span>`;$('wfeed').prepend(d);while($('wfeed').children.length>8)$('wfeed').lastChild.remove()}
+function wfeed(icon,txt,col,why){const d=document.createElement('div');d.className='r';d.innerHTML=`<span class="st">${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'})}</span> <span style="color:${col};font-weight:600">${icon} ${txt}</span><span class="why">→ ${why||''}</span>`;$('wfeed').prepend(d);while($('wfeed').children.length>8)$('wfeed').lastChild.remove();(window.KF_LOG||(window.KF_LOG=[])).push('FEED '+txt+' → '+(why||''))}
 function scanWalls(){if(!bids.size||!avgQ)return;const mid=midP(),now=Date.now(),P=prec[sym]||{p:4};const all=[...bids.values(),...asks.values()].sort((a,b)=>a-b);
  const med=all[Math.floor(all.length/2)]||avgQ,th=Math.max(med*15,avgQ*5);const seen=new Set();
  for(const[side,m]of[['b',bids],['a',asks]])for(const[p,q]of m){if(Math.abs(p-mid)/mid>RNG*1.2||q<th)continue;const k=side+p;seen.add(k);let w=walls.get(k);
   if(!w){w={side,price:p,qty:q,peak:q,born:now,flash:now,grow:0,conf:false};walls.set(k,w)}
   else{if(q>w.qty*1.25)w.grow=now;w.qty=q;w.peak=Math.max(w.peak,q)}
   if(!w.conf&&now-w.born>=2000){w.conf=true;w.flash=now;const dist=((p-mid)/mid*100);
-   if(now-startT>4000){added.push(now);wfeed(side==='b'?'🟢':'🔴',`${side==='b'?'Buyer':'Seller'} put up ${usdK(q*p)} at $${fmt(p,P.p)} (${Math.abs(dist).toFixed(2)}% ${dist<0?'below':'above'})`,side==='b'?'var(--bid)':'var(--ask)',side==='b'?'New floor: could slow drops — if it stays.':'New ceiling: could cap rallies — if it stays.')}}w.near=Math.abs(p-mid)/mid<0.0015}
+   if(now-startT>4000){added.push(now);wfeed(side==='b'?'🟢':'🔴',nsay(side==='b'?'wadd_b':'wadd_a',{usd:usdK(q*p),px:'$'+fmt(p,P.p),dist:Math.abs(dist).toFixed(2)+'%'}),side==='b'?'var(--bid)':'var(--ask)',side==='b'?'New floor: could slow drops — if it stays.':'New ceiling: could cap rallies — if it stays.')}}w.near=Math.abs(p-mid)/mid<0.0015}
  for(const[k,w]of walls){if(seen.has(k))continue;const m=w.side==='b'?bids:asks,q=m.get(w.price)||0;if(q>=w.peak*0.35&&q>0){w.qty=q;continue}if(!w.conf){walls.delete(k);continue}
   // gone: eaten or pulled? trades at/through the wall price since born
   const life=(now-w.born)/1000;let traded=0;for(const[t,p,qq,sd]of recentTr){if(t<w.born-500)continue;if(w.side==='a'?(sd==='buy'&&p>=w.price):(sd==='sell'&&p<=w.price))traded+=qq}
   const through=w.side==='a'?mid>w.price:mid<w.price;const eaten=through||traded>=w.peak*0.5;const spoof=!eaten&&(life<8||w.near);
   const ev={...w,died:now,how:eaten?'eaten':'pulled',spoof,life};wHist.push(ev);walls.delete(k);
   const S=w.side==='b'?'BID':'ASK';
-  if(eaten)bubble(w.side==='a'?'askeat':'bideat',pick(w.side==='a'?ASKEAT:BIDEAT),`${w.side==='a'?'Ask':'Bid'} wall $${fmt(w.price,P.p)} (${usdK(w.peak*w.price)}) eaten (est.)`,w.side==='a'?15000:15000);
-  else bubble(w.side==='a'?'askgone':'bidpull',pick(w.side==='a'?ASKGONE:BIDPULL),`${w.side==='a'?'Ask':'Bid'} wall $${fmt(w.price,P.p)} (${usdK(w.peak*w.price)}) pulled after ${life.toFixed(0)}s`,20000);
-  if(eaten)wfeed('🍽️',`${w.side==='a'?'Buyers ate the ceiling':'Sellers broke the floor'} at $${fmt(w.price,P.p)} (${usdK(w.peak*w.price)}, est.)`,'#ffb547',w.side==='a'?'Real buying pressure — price may push higher.':'Real selling pressure — price may slide lower.');
-  else wfeed(spoof?'⚠️':'✖',`${w.side==='b'?'Floor':'Ceiling'} at $${fmt(w.price,P.p)} (${usdK(w.peak*w.price)}) pulled after ${life.toFixed(0)}s${spoof?' — likely fake (est.)':''}`,spoof?'#ff9ad5':'var(--ac)',w.side==='b'?'That support is gone — don\'t count on it.':'That resistance is gone — less in the way up.')}
+  const dd={usd:usdK(w.peak*w.price),px:'$'+fmt(w.price,P.p),held:ago(life),base:base()};
+  if(w.side==='b'){const nx=[...walls.values()].filter(v=>v.conf&&v.side==='b'&&v.price<w.price).sort((a,b)=>b.price-a.price)[0];if(nx)dd.nxt='$'+fmt(nx.price,P.p)+' ('+usdK(nx.qty*nx.price)+')'}
+  if(eaten){nev(w.side==='a'?'ceilbreak':'floorbreak',{price:w.price,v:w.peak*w.price});
+   bubble(w.side==='a'?'askeat':'bideat',nsay(w.side==='a'?'break_a':'break_b',dd),`${w.side==='a'?'Ask':'Bid'} wall ${dd.px} (${dd.usd}) eaten after ${dd.held} (est.)`,15000,w.side==='a'?'g':'b',2);
+   wfeed(w.side==='a'?'🚀':'💥',nsay(w.side==='a'?'break_a':'break_b',dd),w.side==='a'?'var(--bid)':'var(--ask)',w.side==='a'?'Real buying pressure — less supply in the way up. GOOD FOR LONGS':'Real selling pressure — support gone. BAD FOR LONGS')}
+  else{nev('pull',{side:w.side,price:w.price,v:w.peak*w.price,life});
+   bubble(w.side==='a'?'askgone':'bidpull',nsay(w.side==='a'?'pull_a':'pull_b',dd),`${w.side==='a'?'Ask':'Bid'} wall ${dd.px} (${dd.usd}) pulled after ${dd.held}${spoof?' — likely fake':''}`,20000,w.side==='a'?'g':'b',0);
+   wfeed(spoof?'👻':'✖',nsay(w.side==='a'?'pull_a':'pull_b',dd),spoof?'#ff9ad5':'var(--ac)',w.side==='b'?'That support is gone — don\'t count on it.':'That resistance is gone — less in the way up.')}}
  wHist=wHist.filter(e=>now-e.died<TL);midH.push([now,mid]);while(midH.length&&now-midH[0][0]>TL)midH.shift();
  let sup=0,res=0;for(const w of walls.values()){if(!w.conf||Math.abs(w.price-mid)/mid>RNG)continue;w.side==='b'?sup+=w.qty*w.price:res+=w.qty*w.price}
  $('sup').textContent=usdK(sup);$('res').textContent=usdK(res);const f=sup+res?sup/(sup+res):.5;$('srb').style.width=f*100+'%';
  added=added.filter(t=>now-t<TL);const nP=wHist.filter(e=>e.how==='pulled').length,nE=wHist.filter(e=>e.how==='eaten').length,nS=wHist.filter(e=>e.spoof).length,live=[...walls.values()].filter(w=>w.conf);
  $('tA').textContent=added.length;$('tP').textContent=nP;$('tE').textContent=nE;
  const stay=live.length+nE,tot=stay+nP,tr=tot?stay/tot:null;$('trb').style.width=(tr==null?50:tr*100)+'%';
- $('trt').textContent=tr==null?'no walls yet':tr>.6?`✅ ${Math.round(tr*100)}% stick — walls look real`:tr>.3?`⚖️ ${Math.round(tr*100)}% stick — mixed`:`⚠️ only ${Math.round(tr*100)}% stick — mostly fake/pulled`;
+ {const pc=Math.round((tr||0)*100),tk=tr==null?'n':tr>.6?'g':tr>.3?'m':'b',TT={n:['no walls yet'],g:[`✅ ${pc}% stick — walls look real`,`✅ ${pc}% stick — these walls mean it`,`✅ ${pc}% stick — legit orders, not props`],m:[`⚖️ ${pc}% stick — mixed, trust but verify`,`⚖️ ${pc}% stick — some real, some bait`],b:[`⚠️ only ${pc}% stick — mostly fake/pulled`,`👻 only ${pc}% stick — spoof city`,`⚠️ ${pc}% stick — the book is bluffing`]};const c=vfS['T'+tk]||(vfS['T'+tk]={i:Math.floor(Math.random()*TT[tk].length),t:now});if(now-c.t>30000){c.i=(c.i+1)%TT[tk].length;c.t=now}$('trt').textContent=TT[tk][c.i]}
  $('trt').style.color=tr==null?'var(--mu)':tr>.6?'var(--bid)':tr>.3?'#ffd166':'#ff9ad5';
  const card=(side,id)=>{let best=null;for(const w of live)if(w.side===side&&(!best||w.qty*w.price>best.qty*best.price))best=w;
   const last=wHist.filter(e=>e.side===side&&now-e.died<15000).pop();const pre=id==='f'?'f':'c';
@@ -242,9 +247,12 @@ function scanWalls(){if(!bids.size||!avgQ)return;const mid=midP(),now=Date.now()
  else if(f<.4&&ce){vh=`SELLERS STACKING ABOVE ${p(ce.price)}`;vs=`Ask walls outweigh bid walls ${usdK(res)} vs ${usdK(sup)}. Rallies toward ${p(ce.price)} likely stall — unless buyers eat it.`;vc='#ff4d6d'}
  else if(!live.length){vh='QUIET';vs='No big walls near price right now. Price moves on normal flow.';vc='#8a82a3'}
  else{vh='BALANCED';vs=`Floor ${fl?p(fl.price):'—'} and ceiling ${ce?p(ce.price):'—'} roughly even. Expect chop between them.`;vc='#a970ff'}
+ {const vk=vh.split(' ')[0];vs=vflav(vk,vs);}
  $('vh').textContent=vh;$('vh').style.color=vc;$('vs').textContent=vs;$('verdict').style.borderColor=vc;
  $('wcount').textContent=`· ${live.length} live walls`}
 let startT=Date.now();setInterval(scanWalls,250);
+const VFL={BUYERS:['Bulls built a bunker here.','That\'s the line bulls are defending.','Dip-buyers are camped below.','Real money waiting under price.'],SELLERS:['Bears built a roof — needs real buying to crack.','That\'s where rallies go to die… unless it gets eaten.','Supply is stacked — don\'t chase into it.'],FAKE:['Spoofer is playing games — the book is lying.','Walls are props right now. Tape tells the truth.','Ghost orders everywhere 👻.'],QUIET:['Calm before the move — or just a nap.','Thin book: small orders can push price.'],BALANCED:['Tug of war — wait for someone to blink.','Range trade until a wall breaks.','Chop city. Patience pays here.']};
+const vfS={};function vflav(k,vs){const a=VFL[k];if(!a)return vs;const now=Date.now();let c=vfS[k];if(!c||now-c.t>30000){let i;do{i=Math.floor(Math.random()*a.length)}while(a.length>1&&c&&i===c.i);c=vfS[k]={i,t:now}}return vs+' '+a[c.i]}
 const ago=s=>s<60?Math.round(s)+'s':s<3600?Math.floor(s/60)+'m'+(s%60>=10&&s<600?String(Math.floor(s%60)).padStart(2,'0')+'s':''):Math.floor(s/3600)+'h';
 const dTxt=(p,mid,P)=>{const d=(p-mid)/mid*100,ab=Math.abs(p-mid);return `${d<0?'−':'+'}${Math.abs(d).toFixed(2)}% · ${ab<1?(ab*100).toFixed(1)+'¢':'$'+ab.toFixed(ab<100?2:0)} ${d<0?'below':'above'}`};
 function wStat(v,now){const age=(now-v.born)/1000;if(v.near)return['UNDER FIRE','#ffd166',2];if(v.qty<v.peak*.6)return['THINNING','#ff9ad5',1];if(v.grow&&now-v.grow<8000)return['GROWING','#7dffb8',3];if(age<30)return['UNPROVEN','#b9b2cc',0];return[(v.side==='b'?'SOLID FLOOR':'SOLID CEILING')+' · '+ago(age),v.side==='b'?'#23d18b':'#ff4d6d',3]}
@@ -299,21 +307,68 @@ function drawWalls(){const mid=midP();if(!mid)return;const P=prec[sym]||{p:4},no
 
 // ===== LONG MODE: tags, score, hype bubbles (read-only; never places orders) =====
 let muted=localStorage.kfMute==='1';const mb=$('mute');const setM=()=>mb.textContent=muted?'🔇 Hype bubbles OFF':'🔊 Hype bubbles ON';setM();mb.onclick=()=>{muted=!muted;localStorage.kfMute=muted?'1':'0';setM()};
-const HYPE=["LFG 🚀 big bid just slammed the tape","Bears getting cooked alive 🔥","WE GOT THIS. Bulls eating good tonight","Somebody just market-bought like they mean it 💪","Shorts are sweating bullets rn","Send it. Full fucking send 🚀","That's a whale with zero chill 🐋","Bid side said 'not today, motherfucker'","Green candle loading… ████▒▒ 70%","Shorts getting liquidated in 4K HDR","Bulls woke up and chose violence 😤","Diamond hands, steel balls 💎","Someone just bought the dip with their whole chest","Tape is printing GREEN, baby","Bears in shambles. Absolute shambles.","That buy hit like a goddamn freight train 🚂","Bulls on the gas, no brakes","Shorts: 🤡  Longs: 😎","Ate the asks for breakfast 🍳","This is the part where bears cry","Buyers came strapped 🔫🐂","Who let the bulls out?! 🐂🐂🐂","Price discovery? More like price DOMINATION","Rip their faces off 🚀🚀","We don't sell, we reload","Max pain for the bears, max gains for the gang","Order book just flexed on everyone","Bull market energy, no cap","That's how you fucking buy","Sellers got sent to the shadow realm"];
-const WALLH=["Floor HELD 🧱 bulls not budging","They tested the bid and got bodied","Brick wall. Bears bounced off it 🧱","Floor said 'nah' — holding strong","Defense wins championships 🛡️"];
-const SURGE=["Buy delta SURGING 📈 bulls stampeding","Buyers piling in — momentum is ours","Wave of green — delta ripping","Flow is bullish AF right now"];
-const WARN=["Bears swinging — hold the line 🛡️","Big sell hit. Breathe. Check your stop.","Sellers pushing — don't panic, watch the floor","Red print incoming — stay frosty","Bears got a punch in. Round's not over.","Heavy sell — respect it, manage risk"];
-const ASKGONE=["Ceiling's gone — runway's open 🛫","Sellers chickened out. Path up is clear","Ask wall pulled — bears blinked first 👀","Resistance deleted. Let's fucking go"];
-const ASKEAT=["Bulls ATE the ceiling 🍽️ — breakout fuel","Ask wall got devoured. Bears in shambles","Smashed through the ceiling like it owed us money 💥"];
-const BIDPULL=["Floor got yanked — careful, no net below","Bid wall vanished. Bulls, tighten up 😬","Support just ghosted us — watch your stop"];
-const BIDEAT=["Sellers broke the floor 🧱💥 — protect the long","Bid wall got eaten. Not great, stay sharp"];
-const REJECT=["Ceiling held — price got slapped back 🚫","Ask wall rejecting us. Bears holding the line above","Bounced off the ceiling — don't chase, wait for the break"];
-const pick=a=>a[Math.floor(Math.random()*a.length)];let lastBub={};
-function bubble(kind,txt,sub,gap){const now=Date.now();if(muted||now-startT<8000||(lastBub[kind]||0)>now-gap||$('bub').children.length>=3)return;lastBub[kind]=now;
- const d=document.createElement('div');d.className='bb '+(['warn','bidpull','reject'].includes(kind)?'bw':'bg');d.innerHTML=`${txt}<small>${sub}</small>`;$('bub').prepend(d);setTimeout(()=>d.remove(),4100)}
+// ===== NARRATOR: categorized callouts (real numbers only), no-repeat rotation, multi-event stories =====
+const NL={
+buy:["LFG 🚀 {usd} market BUY just slammed the tape at {px}","🐋 Whale with zero chill: {xrp} {base} lifted at {px}","Somebody market-bought {usd} like rent's due tomorrow 💪","{usd} buy at {px} — that's not retail, that's a statement","Bid side said 'not today' — {usd} smashed the ask at {px}","Shorts sweating: {xrp} {base} swept at market ({usd})","Bulls woke up and chose violence — {usd} at {px} 😤","That {usd} print hit like a freight train 🚂","Ate the asks for breakfast 🍳 {usd} lifted at {px}","Who let the bulls out?! {xrp} {base} market-bought 🐂","Buyer paid the spread on {usd} — urgency is a tell","Full send: {usd} taker buy at {px}, no limit-order patience","{xrp} {base} bought at market. Somebody knows something or wants you to think so","Green whale print: {usd} @ {px}. Bears just got a calendar invite to pain","Tape is printing GREEN — {usd} at {px}","{usd} slammed in one shot. That's how you fucking buy","Big boy entry: {usd} at {px}. Watch if the next ceiling eats it","Max pain for bears: {usd} market buy at {px}"],
+sell:["🔻 {usd} market SELL hit the bids at {px} — hold the line","Bears swung {usd} at {px}. Breathe. Check your stop","{xrp} {base} dumped at market ({usd}) — watch the floor","Red whale print: {usd} @ {px}. Respect it, don't panic","Somebody hit {usd} of bids at {px} — urgency on the sell side","Bears got a punch in: {usd} at {px}. Round's not over","{usd} sell slammed — if the floor eats it, that's bullish","Heavy hand: {xrp} {base} sold at market at {px}","{usd} sell print. Either a liquidation or someone who's done","Sellers paid the spread on {usd} — they wanted OUT","⚠️ {usd} red candle fuel at {px} — stay frosty","Big seller at {px}: {usd}. Next question: does the bid refill?"],
+wadd_b:["🧱 Buyer parked {usd} at {px} ({dist} below) — new floor","Fresh floor: {usd} bid at {px}, {dist} under price","Someone's building a trampoline at {px} ({usd})","{usd} of bids stacked at {px}. Bulls brought bricks","New support: {usd} at {px} — real if it survives 30s","Bid wall up: {usd} at {px}. Could slow drops… if it stays"],
+wadd_a:["🧱 Seller parked {usd} at {px} ({dist} above) — new ceiling","Lid alert: {usd} ask at {px}, {dist} over price","Someone dropped a {usd} roof at {px}","{usd} of asks stacked at {px}. That's the boss fight","New resistance: {usd} at {px} — eat it or respect it","Ask wall up: {usd} at {px}. Rallies may stall here"],
+pull_b:["👻 Floor at {px} ({usd}) got yanked after {held} — no net below","Bid wall vanished after {held}. Bulls, tighten up 😬","Support ghosted us: {usd} at {px} pulled after {held}","Fake floor alert — {usd} at {px} lived {held}","{usd} bid at {px} pulled. That was a prop, not a floor","Floor was cardboard: {usd} gone from {px} after {held}"],
+pull_a:["👻 Ceiling at {px} ({usd}) pulled after {held} — runway open 🛫","Sellers chickened out: {usd} ask at {px} gone after {held}","Resistance deleted at {px} ({usd}). Let's go","Ask wall pulled after {held} — bears blinked first 👀","{usd} lid at {px} disappeared. Path up is cleaner","Fake ceiling — {usd} at {px} only lasted {held}"],
+hold_b:["🛡️ Floor HELD at {px} ({usd}) — {held} under fire","Brick wall. Bears bounced off {px} 🧱","They tested {px} and got bodied — {usd} still there","Defense wins championships: {usd} floor survived {held}","Floor said 'nah' — {px} holding with {usd}","Bid at {px} took the hits for {held} and didn't flinch"],
+break_b:["💥 FLOOR BROKEN at {px} ({usd}) — protect the long","Sellers ate the {usd} floor at {px}. Next stop: {nxt}","Bid wall at {px} got devoured — {usd} gone. Stay sharp","Support cracked at {px}. That was {usd} of real buying, now gone","Floor at {px} fell after {held}. Not great — check the next floor ({nxt})"],
+crack_a:["🔨 Ceiling cracking at {px} — down to {pct} of its size","Bulls chipping the lid: {px} ask thinned to {pct}","{px} ceiling is sweating — {pct} left. Breakout loading?","Ask wall at {px} getting eaten — {pct} remaining"],
+break_a:["🚀 CEILING BROKEN at {px} — bulls ate {usd}","Smashed through {px} like it owed us money 💥 ({usd})","Ask wall at {px} devoured — {usd} gone. Breakout fuel","Lid's off at {px}. {usd} of supply absorbed by buyers","Bears in shambles: {usd} ceiling at {px} eaten after {held}"],
+rej_a:["🚫 Ceiling held at {px} ({usd}) — price slapped back","Bounced off {px}. Don't chase, wait for the break","{usd} ask at {px} survived {held} of testing. Bears holding above","Ceiling at {px} not budging — {usd} sitting there"],
+surge:["📈 Bid share SURGING: {b} bought vs {s} sold in 30s","Buyers stampeding — {share} of 30s flow is buys ({b})","Wave of green: {b} vs {s} in 30s. Momentum is ours","{share} buy share in 30s. Bulls have the wheel","Taker buys {b} vs sells {s} — flow is bullish AF"],
+collapse:["📉 Bid share COLLAPSED: {s} sold vs {b} bought in 30s","Sellers took over — {share} of 30s flow is buys only","{s} of market sells in 30s. Longs, check your stop","Flow flipped red hard: {s} vs {b}. Respect it","Buy share at {share}. Bears have the wheel for now"],
+flip_up:["🔄 Long pressure FLIPPED bullish — 60s buys {share} ({b} vs {s})","Tide turned: buyers back in control at {share}","Momentum flip: {b} bought vs {s} sold in 60s. Bulls reloaded","Bears lost the minute — buy share now {share}"],
+flip_dn:["🔄 Long pressure FLIPPED bearish — 60s buys just {share}","Tide turned against us: {s} sold vs {b} bought in 60s","Sellers grabbed the wheel — buy share dropped to {share}","Bulls lost the minute: {share} buys. Tighten up"],
+burst:["⚡ Squeeze-ish burst: price {ch} in 15s on {b} of buys","Rip! {ch} in 15 seconds — shorts getting squeezed?","Momentum burst {ch} in 15s. Somebody's covering","Price ripped {ch} in 15s — {b} lifted. Don't chase the top"],
+dump:["⚡ Flush burst: price {ch} in 15s on {s} of sells","Air pocket: {ch} in 15 seconds. Longs getting tested","Price dropped {ch} in 15s — {s} sold. Watch the floor"],
+chop:["⚔️ Tug of war: {b} buys vs {s} sells in 60s — nobody's winning","Chop zone. Score {sc}, range {rng}. Don't overtrade it","Bulls and bears trading punches — buy share {share}","Range-bound in a {rng} band. Wait for a side to blink"],
+quiet:["😴 Dead quiet: only {tot} traded in 60s","Market's napping — {tot} of flow in a minute","Crickets. {tot} traded in 60s. Big move usually follows boredom"],
+sc_up:["📊 Long Score jumped {d} pts to {sc} — edge swinging to longs","Score ripping: +{d} → {sc}. Bulls cooking","Long Score {sc} (+{d} in 60s). The board just turned green"],
+sc_dn:["📊 Long Score dropped {d} pts to {sc} — edge leaking away","Score bleeding: −{d} → {sc}. Careful","Long Score {sc} (−{d} in 60s). The board is turning red"],
+absorb:["🧽 ABSORPTION: {s} sold into the {px} floor and it's STILL there","Sellers threw {s} at {px} — floor ate it all. Bullish tell","{px} floor sponged {s} of market sells. Someone's accumulating","Bears hit {px} with {s} and it didn't break. That's a real bid"]};
+const BUBK={buy:'buy',sell:'warn'};
+const NR={h:{},pick(cat,dd){const a=NL[cat];if(!a)return'';const hist=this.h[cat]||(this.h[cat]=[]),keep=Math.min(20,a.length-1);
+ let ok=a.map((t,i)=>i).filter(i=>!hist.includes(i)&&(a[i].match(/\{(\w+)\}/g)||[]).every(k=>dd[k.slice(1,-1)]!=null));
+ if(!ok.length)ok=a.map((t,i)=>i).filter(i=>(a[i].match(/\{(\w+)\}/g)||[]).every(k=>dd[k.slice(1,-1)]!=null));if(!ok.length)return'';
+ const i=ok[Math.floor(Math.random()*ok.length)];hist.push(i);while(hist.length>keep)hist.shift();return a[i].replace(/\{(\w+)\}/g,(m,k)=>dd[k])}};
+const nsay=(cat,dd)=>NR.pick(cat,dd);
+const pick=a=>a[Math.floor(Math.random()*a.length)];let lastBub={},lastAny=0;
+// tone: g=good for longs (green), b=bad (red), n=neutral (purple). prio 0 normal,1 notable,2 big (stories/breaks)
+function bubble(kind,txt,sub,gap,tone,prio){if(!txt)return;const now=Date.now();prio=prio||0;tone=tone||(['warn','bidpull','reject','bideat'].includes(kind)?'b':'g');
+ if(muted||now-startT<8000||(lastBub[kind]||0)>now-gap)return;if(prio<2&&now-lastAny<(prio?2500:4000))return;
+ const box=$('bub');if(box.children.length>=3){if(prio<2)return;let low=[...box.children].reverse().find(c=>+c.dataset.p<2);if(!low)return;low.remove()}
+ lastBub[kind]=now;lastAny=now;(window.KF_LOG||(window.KF_LOG=[])).push('BUBBLE['+tone+'] '+txt+' | '+sub);const d=document.createElement('div');d.dataset.p=prio;d.className='bb '+(tone==='b'?'bw':tone==='n'?'bp':'bg')+(prio>=2?' bbig':'');d.innerHTML=`${txt}<small>${sub}</small>`;box.prepend(d);setTimeout(()=>d.remove(),prio>=2?6100:4100)}
+// ---- stories ----
+const EVL=[],STL={};const base=()=>sym.split('/')[0];
+const fx=v=>v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e4?(v/1e3).toFixed(1)+'K':Math.round(v).toLocaleString();
+function story(id,tone,title,txt,big,cool){const now=Date.now();if((STL[id]||0)>now-(cool||120000))return;STL[id]=now;
+ const col=tone==='G'?'var(--bid)':tone==='B'?'var(--ask)':'#a970ff';
+ const d=document.createElement('div');d.className='r story';d.innerHTML=`<span class="st">${new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'})}</span> <span style="color:${col};font-weight:800">📖 ${title}</span> ${tagH(tone)}<span class="why">${txt}</span>`;$('wfeed').prepend(d);while($('wfeed').children.length>8)$('wfeed').lastChild.remove();
+ (window.KF_LOG||(window.KF_LOG=[])).push('STORY '+tone+' '+title+' — '+txt);
+ if(big)bubble('story',`📖 ${title}`,txt,15000,tone==='G'?'g':tone==='B'?'b':'n',2)}
+function nev(type,dd){const now=Date.now();EVL.push({t:now,type,d:dd});while(EVL.length&&now-EVL[0].t>300000)EVL.shift();const P=prec[sym]||{p:4},px=v=>'$'+fmt(v,P.p);
+ const since=(ty,ms)=>EVL.filter(e=>e.type===ty&&now-e.t<=ms);
+ if(type==='pull'){const same=since('pull',120000).filter(e=>e.d.side===dd.side);if(same.length>=3){const tot=same.reduce((s,e)=>s+e.d.v,0);
+  story('spoof'+dd.side,dd.side==='b'?'B':'N',`SPOOFER WORKING THE ${dd.side==='b'?'BIDS':'ASKS'}`,`${same.length} ${dd.side==='b'?'bid':'ask'} walls pulled in 2 min across ${new Set(same.map(e=>e.d.price)).size} price levels (${usdK(tot)} flashed and yanked), latest at ${px(dd.price)}. ${dd.side==='b'?"Those bids are bait to make support look real — don't trust the floor, trust the tape.":"Fake supply flashed to scare buyers off — the real ceiling is thinner than it looks."}`,same.length>=4)}}
+ if(type==='surge'){const ab=since('absorb',180000).pop();if(ab)story('accum','G','ACCUMULATION',`The ${px(ab.d.price)} floor soaked up ${usdK(ab.d.s)} of sells, then buyers flipped aggressive (${usdK(dd.b)} bought in 30s). Someone's loading while bears run out of ammo — classic base before a push.`,true)
+  const cb=since('ceilbreak',90000).pop();if(cb)story('squeeze','G','BREAKOUT + CHASE',`Bulls ate the ${px(cb.d.price)} ceiling (${usdK(cb.d.v)}) and buyers piled in right after (${usdK(dd.b)} in 30s). Breakouts with follow-through are the ones that stick.`,true)}
+ if(type==='reject'||type==='ceilhold'){const wb=since('wbuy',90000);const tot=wb.reduce((s,e)=>s+e.d.v,0);if(wb.length&&tot>=20000)story('distrib','B','DISTRIBUTION',`${wb.length} whale buy${wb.length>1?'s':''} (${usdK(tot)}) slammed into the ${px(dd.price)} ceiling and it didn't break. A seller is feeding the bid — upside is capped until that wall goes.`,true)
+  if(since('burst',90000).length)story('bulltrap','B','BULL TRAP RISK',`Price ripped up, then got slapped at the ${px(dd.price)} ceiling (${usdK(dd.v)}). Chasing here is buying someone else's exit.`,true)}
+ if(type==='floorhold'){const ws=since('wsell',90000);const tot=ws.reduce((s,e)=>s+e.d.v,0);if(ws.length&&tot>=15000)story('beartrap','G','BEAR TRAP',`${usdK(tot)} of whale selling hit and the ${px(dd.price)} floor (${usdK(dd.v)}) still held. Bears spent their ammo and got nothing — fuel for a bounce.`,true)}
+ if(type==='burst'&&dd.dir>0){const fb=since('floorhold',120000).pop()||since('absorb',120000).pop();if(fb)story('spring','G','SPRING OFF THE FLOOR',`The ${px(fb.d.price)} floor held, and now price is up ${dd.ch} in 15s. Defended floor → bounce is the textbook long setup.`,true)}
+ if(type==='flipdn'){const fb=since('floorbreak',120000).pop();if(fb)story('breakdown','B','BREAKDOWN',`Floor at ${px(fb.d.price)} broke and the whole minute flipped to sellers (buys only ${dd.share}). Support turned to resistance — longs need the next floor to hold.`,true)}}
+function storyTick(){const now=Date.now();const P=prec[sym]||{p:4},px=v=>'$'+fmt(v,P.p),mid=midP();if(!mid)return;
+ for(const e of EVL){if(e.type!=='floorbreak'||e.done||now-e.t>45000||now-e.t<4000)continue;let s=0,b=0;for(const[t,p,q,sd]of recentTr)if(t>=e.t)(sd==='sell'?s+=p*q:b+=p*q);
+  if(s>=15000&&s>b*2&&mid<e.d.price){e.done=1;story('flush','B','FLUSH',`The ${px(e.d.price)} floor broke and ${usdK(s)} of market sells poured through in ${Math.round((now-e.t)/1000)}s (vs ${usdK(b)} bought). Stops getting run — wait for a new floor before catching it.`,true)}}}
+setInterval(storyTick,1000);
 const tagH=(t)=>`<span class="tag ${t[0]==='G'?'tg':t[0]==='B'?'tb':'tn'}">${t==='G'?'GOOD FOR LONGS':t==='B'?'BAD FOR LONGS':'NEUTRAL'}</span>`;
 function setTag(id,t,why){$('tg'+id).innerHTML=tagH(t);if($('wy'+id))$('wy'+id).textContent=why;return[t,why]}
-let lsE=null,surgeOn=false;const heldT=new Map();
+let lsE=null,surgeOn=false,collOn=false,flipS=0,burstT=0,chopT=Date.now(),scT=0;const pH=[],scH=[],crackT=new Map(),absT=new Map();const heldT=new Map();
 function longTick(){if(!bids.size)return;const now=Date.now(),mid=midP(),P=prec[sym]||{p:4},[b,a]=sorted();const comp=[];const add=(n,v,w,t,why)=>{comp.push([n,v,w,t,why])};
  const dir=(v,g,bd)=>v>=g?'G':v<=bd?'B':'N';
  // imbalance
@@ -343,15 +398,35 @@ function longTick(){if(!bids.size)return;const now=Date.now(),mid=midP(),P=prec[
  {const ch=comp.map(([n,,,t,why])=>`<div class="chip"><b>${n} ${tagH(t)}</b><span class="w">${why}</span></div>`).join('');if(ch!==longTick.c){longTick.c=ch;$('chips').innerHTML=ch}}
  // bubbles: buy surge (30s)
  let b30=0,s30=0;for(const[t,p,q,sd]of recentTr)if(now-t<30000)(sd==='buy'?b30+=q*p:s30+=q*p);const big=sym.startsWith('BTC')?100000:25000;
- if(b30>=big*2&&b30/(b30+s30)>=.75){if(!surgeOn)bubble('surge',pick(SURGE),`${usdK(b30)} bought vs ${usdK(s30)} sold in 30s`,30000);surgeOn=true}else surgeOn=false;
- // floor held a test: best bid wall near price for 5s and still there
- for(const w of live){const k=w.side+w.price;if(w.side==='a'){if(w.near){if(!heldT.has(k))heldT.set(k,now);else if(heldT.get(k)>0&&now-heldT.get(k)>5000){heldT.set(k,-1);bubble('reject',pick(REJECT),`Ask wall $${fmt(w.price,P.p)} (${usdK(w.qty*w.price)}) held a 5s+ test`,20000)}}continue}if(w.near){if(!heldT.has(k))heldT.set(k,now);else if(heldT.get(k)>0&&now-heldT.get(k)>5000){heldT.set(k,-1);bubble('wall',pick(WALLH),`Bid wall $${fmt(w.price,P.p)} (${usdK(w.qty*w.price)}) held a 5s+ test`,20000)}}}
+ const sh30=b30+s30?b30/(b30+s30):.5,dd30={b:usdK(b30),s:usdK(s30),share:Math.round(sh30*100)+'%'};
+ if(b30>=big*2&&sh30>=.75){if(!surgeOn){bubble('surge',nsay('surge',dd30),`${dd30.b} bought vs ${dd30.s} sold in 30s`,30000,'g',1);wfeed('📈',nsay('surge',dd30),'var(--bid)','Aggressive buyers in control of the last 30s. GOOD FOR LONGS');nev('surge',{b:b30,s:s30})}surgeOn=true}else surgeOn=false;
+ if(s30>=big*2&&sh30<=.25){if(!collOn){bubble('coll',nsay('collapse',dd30),`${dd30.s} sold vs ${dd30.b} bought in 30s`,30000,'b',1);wfeed('📉',nsay('collapse',dd30),'var(--ask)','Sellers own the last 30s. BAD FOR LONGS');nev('collapse',{b:b30,s:s30})}collOn=true}else collOn=false;
+ // long-pressure flip (60s, hysteresis)
+ {const st=bu+se<5000?flipS:fs>=.58?1:fs<=.42?-1:flipS,d6={b:usdK(bu),s:usdK(se),share:Math.round(fs*100)+'%'};if(flipS&&st&&st!==flipS&&now-startT>30000){const up=st>0;bubble('flip',nsay(up?'flip_up':'flip_dn',d6),`60s: ${d6.b} bought vs ${d6.s} sold`,25000,up?'g':'b',1);wfeed('🔄',nsay(up?'flip_up':'flip_dn',d6),up?'var(--bid)':'var(--ask)',up?'Minute flow turned to buyers. GOOD FOR LONGS':'Minute flow turned to sellers. BAD FOR LONGS');nev(up?'flipup':'flipdn',d6)}if(st)flipS=st}
+ // 15s momentum burst
+ {pH.push([now,mid]);while(pH.length&&now-pH[0][0]>16000)pH.shift();const p0=pH[0][1],ch=(mid-p0)/p0*100;let b15=0,s15=0;for(let i=recentTr.length-1;i>=0;i--){const[t,p,q,sd]=recentTr[i];if(now-t>15000)break;sd==='buy'?b15+=p*q:s15+=p*q}
+  const dB={ch:(ch>=0?'+':'')+ch.toFixed(2)+'%',b:usdK(b15),s:usdK(s15)};
+  if(now-pH[0][0]>12000&&Math.abs(ch)>=.15&&now-burstT>45000){const up=ch>0;if(up?b15>s15*1.5:s15>b15*1.5){burstT=now;bubble('burst',nsay(up?'burst':'dump',dB),`Price ${dB.ch} in 15s · ${dB.b} bought / ${dB.s} sold`,45000,up?'g':'b',1);wfeed('⚡',nsay(up?'burst':'dump',dB),up?'var(--bid)':'var(--ask)',up?'Fast upside — shorts may be covering. Don\'t chase the wick.':'Fast downside — stops getting hit.');nev('burst',{dir:up?1:-1,ch:dB.ch})}}}
+ // chop / quiet (feed only, every 3 min)
+ {const sc=Math.round(lsE||50),hs=midH.filter(m=>now-m[0]<120000).map(m=>m[1]),rng=hs.length?(Math.max(...hs)-Math.min(...hs))/mid*100:0;
+  if(now-startT>60000&&now-chopT>180000){if(bu+se<3000){chopT=now;wfeed('😴',nsay('quiet',{tot:usdK(bu+se)}),'#8a82a3','Low volume — moves are easy to fake. NEUTRAL')}else if(fs>.44&&fs<.56&&sc>44&&sc<56&&rng<.25){chopT=now;wfeed('⚔️',nsay('chop',{b:usdK(bu),s:usdK(se),sc,rng:rng.toFixed(2)+'%',share:Math.round(fs*100)+'%'}),'#a970ff','No side in control. NEUTRAL — wait for a floor test or a breakout.')}}
+  // long score swing
+  scH.push([now,sc]);while(scH.length&&now-scH[0][0]>60000)scH.shift();const dsc=sc-scH[0][1];if(now-startT>30000&&Math.abs(dsc)>=12&&now-scT>60000){scT=now;const up=dsc>0,dS={d:Math.abs(dsc),sc};bubble('score',nsay(up?'sc_up':'sc_dn',dS),`Long Score ${scH[0][1]} → ${sc} in ~60s`,60000,up?'g':'b',0);wfeed('📊',nsay(up?'sc_up':'sc_dn',dS),up?'var(--bid)':'var(--ask)',up?'More signals lining up for longs. GOOD FOR LONGS':'Signals turning against longs. BAD FOR LONGS')}}
+ // floor/ceiling tests, absorption, ceiling crack
+ for(const w of live){const k=w.side+w.price,dd={px:'$'+fmt(w.price,P.p),usd:usdK(w.qty*w.price)};
+  if(w.side==='a'){if(w.near&&w.qty<w.peak*.6&&!crackT.has(k)){crackT.set(k,now);dd.pct=Math.round(w.qty/w.peak*100)+'%';bubble('crack',nsay('crack_a',dd),`Ask wall ${dd.px} thinned from ${usdK(w.peak*w.price)} to ${dd.usd}`,20000,'g',0);wfeed('🔨',nsay('crack_a',dd),'var(--bid)','Buyers are eating the ceiling — breakout could follow. GOOD FOR LONGS')}
+   if(w.near){if(!heldT.has(k))heldT.set(k,now);else if(heldT.get(k)>0&&now-heldT.get(k)>5000){dd.held=ago((now-heldT.get(k))/1000);heldT.set(k,-1);bubble('reject',nsay('rej_a',dd),`Ask wall ${dd.px} (${dd.usd}) held a 5s+ test`,20000,'b',0);wfeed('🚫',nsay('rej_a',dd),'var(--ask)','Ceiling defended — rallies stall here for now. BAD FOR LONGS');nev('ceilhold',{price:w.price,v:w.qty*w.price})}}continue}
+  if(w.near){let sl=0;for(let i=recentTr.length-1;i>=0;i--){const[t,p,q,sd]=recentTr[i];if(now-t>30000)break;if(sd==='sell'&&t>=w.born&&p<=w.price*1.0015)sl+=p*q}
+   if(sl>=Math.max(10000,w.peak*w.price*.5)&&w.qty>=w.peak*.6&&mid>w.price&&!absT.has(k)){absT.set(k,now);dd.s=usdK(sl);bubble('absorb',nsay('absorb',dd),`${dd.s} market-sold near ${dd.px}; wall still ${dd.usd}`,30000,'g',1);wfeed('🧽',nsay('absorb',dd),'var(--bid)','Sells absorbed by a real bid — someone is accumulating. GOOD FOR LONGS');nev('absorb',{price:w.price,s:sl})}
+   if(!heldT.has(k))heldT.set(k,now);else if(heldT.get(k)>0&&now-heldT.get(k)>5000){dd.held=ago((now-heldT.get(k))/1000);heldT.set(k,-1);bubble('wall',nsay('hold_b',dd),`Bid wall ${dd.px} (${dd.usd}) held a 5s+ test`,20000,'g',0);wfeed('🛡️',nsay('hold_b',dd),'var(--bid)','Floor defended under fire. GOOD FOR LONGS');nev('floorhold',{price:w.price,v:w.qty*w.price})}}}
 }
 setInterval(longTick,1000);
 let tSizes=[];
 function hypeTrade(t){const v=t.qty*t.price,buy=t.side==='buy';tSizes.push(v);if(tSizes.length>1000)tSizes.shift();if(tSizes.length<100)return;
  if(!hypeTrade.p||!(tSizes.length%25)||hypeTrade.n++>25){hypeTrade.n=0;hypeTrade.p=[...tSizes].sort((x,y)=>x-y)[Math.floor(tSizes.length*.99)]}const p99=hypeTrade.p,big=sym.startsWith('BTC')?100000:25000,th=Math.max(5000,Math.min(big,p99));if(v<th)return;
- const P=prec[sym]||{p:4};if(buy)bubble('buy',pick(HYPE),`Market BUY ${usdK(v)} @ $${fmt(t.price,P.p)}`,6000);else bubble('warn',pick(WARN),`Market SELL ${usdK(v)} @ $${fmt(t.price,P.p)}`,12000)}
+ const P=prec[sym]||{p:4},dd={usd:usdK(v),xrp:fx(t.qty),base:base(),px:'$'+fmt(t.price,P.p)};nev(buy?'wbuy':'wsell',{v,price:t.price});const pr=v>=big?1:0;
+ if(buy)bubble('buy',nsay('buy',dd),`Market BUY ${dd.xrp} ${dd.base} = ${dd.usd} @ ${dd.px}`,6000,'g',pr);else bubble('warn',nsay('sell',dd),`Market SELL ${dd.xrp} ${dd.base} = ${dd.usd} @ ${dd.px}`,12000,'b',pr);
+ if(v>=big)wfeed(buy?'🐋':'🔻',nsay(buy?'buy':'sell',dd),buy?'var(--bid)':'var(--ask)',buy?'Taker paid up — urgency on the buy side. GOOD FOR LONGS':'Taker dumped into bids — watch if the floor absorbs it.')}
 
 // ===== MY POSITION (read-only, from local helper; keys never touch this page) =====
 const NOKEY='<div class="hd st">Add your Kraken API key (read-only) to see your position</div><div class="st" style="font-size:11px">File → Keys… (or copy .env.example to .env), with position_server.py running — Kraken Flow.bat starts it if Python is installed.</div>';let rxPos=null;async function posTick(){const el=$('posb');let d;rxPos=null;try{const r=await fetch('http://127.0.0.1:8787/position',{cache:'no-store'});d=await r.json();if(d&&d.ok&&d.positions){const ps=d.positions,b=sym.split('/')[0];rxPos=ps.find(x=>String(x.pair).includes(b))||ps[0]||'none'}}catch(e){el.innerHTML=NOKEY;$('tgPos').innerHTML='';return}
