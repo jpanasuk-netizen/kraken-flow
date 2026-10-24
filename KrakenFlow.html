@@ -117,7 +117,7 @@ header b{text-shadow:0 0 14px #a970ffaa}
 <div class="btns"><button class="pr" id="kSave">Save</button><button id="kTest">Test</button><button id="kClear">Clear keys</button><button id="kClose" style="margin-left:auto">Close</button></div></div></div>
 <div id="g">
 <div class="p" id="lad"><h3>Order book ladder <span id="tgSpr"></span></h3><div class="why2" id="wySpr"></div><div id="ladder" class="list"></div></div>
-<div class="p"><h3>Depth chart <span id="tgDepth"></span></h3><div class="why2" id="wyDepth"></div><canvas id="depth"></canvas></div>
+<div class="p"><h3>Price · breakeven · trend <span id="tgPx"></span></h3><div class="why2" id="wyPx">Loading 1m price history…</div><canvas id="pxc" style="flex:1.7"></canvas><h3 style="margin-top:6px">Depth chart <span id="tgDepth"></span></h3><div class="why2" id="wyDepth"></div><canvas id="depth"></canvas></div>
 <div class="p"><h3>Imbalance (bid share · 1m candles) <span id="tgImb"></span><span id="imbNow" class="inow">--</span><span class="ctog" id="ctog"><b data-s="60" class="on">1m</b><b data-s="300">5m</b></span></h3><div class="why2" id="wyImb"></div><div class="gauges"><div>±0.5% <span id="i05"></span><div class="bar"><i id="b05"></i></div></div><div>±1% <span id="i1"></span><div class="bar"><i id="b1"></i></div></div></div><canvas id="imb"></canvas><h3 style="margin-top:6px">Cumulative volume delta <span id="cvdv" class="st"></span> <span id="tgCvd"></span></h3><div class="why2" id="wyCvd"></div><canvas id="cvd"></canvas></div>
 <div class="p" id="tape"><h3>Trade tape <span id="tgTape"></span></h3><div class="why2" id="wyTape"></div><div id="tp" class="list"></div></div>
 <div class="p" id="pos"><h3>My position <span class="st" style="text-transform:none;letter-spacing:0">· read-only via local helper</span> <span id="tgPos"></span></h3><div id="posb" class="list"><div class="st">Connecting to position helper…</div></div><div id="rx"><h4><span>⚛ LONG PRESSURE · 60s</span><span id="tgRx"></span></h4><canvas id="rxc"></canvas><div id="rxv" class="st">CHARGING…</div><div id="rxt"></div>
@@ -518,4 +518,34 @@ function drawCandles(){const nw=performance.now();if(nw-cLastD<250)return;cLastD
  const e=$('imbNow');if(e){e.textContent=(v*100).toFixed(1)+'% '+(v>=.58?'▲':v<=.42?'▼':'•');e.style.color=col;e.style.textShadow='0 0 8px '+col}}
 document.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.closest('#ctog b');if(!b)return;cIv=+b.dataset.s;localStorage.cIv=cIv;cdl=[];cLastD=0;cSave();document.querySelectorAll('#ctog b').forEach(z=>z.classList.toggle('on',z===b))});
 addEventListener('DOMContentLoaded',()=>document.querySelectorAll('#ctog b').forEach(z=>z.classList.toggle('on',+z.dataset.s===cIv)));
+
+// ---- price chart: breakeven line + trend projection (1m closes, Kraken public OHLC + live mid) ----
+let pxM=[],pxSym='',pxErr='';const PXW=60,FIT=30,HZ=30;
+async function pxSeed(){const sy=sym;pxSym=sy;pxM=[];try{const r=await fetch('https://api.kraken.com/0/public/OHLC?pair='+sy.replace('/','')+'&interval=1',{cache:'no-store'});const j=await r.json();const k=Object.keys(j.result||{}).find(z=>z!=='last');if(sy!==sym)return;pxM=(j.result[k]||[]).slice(-PXW-1).map(c=>[c[0]/60|0,+c[4]]);pxErr=''}catch(e){pxErr='history unavailable — building from live'}}
+{const _s=start;start=function(){_s.apply(this,arguments);if(pxSym!==sym)pxSeed()}}
+function pxBE(){const p=rxPos;if(!p||p==='none'||!p.size)return null;const b=sym.split('/')[0];if(!String(p.pair).includes(b))return null;const fee=+p.fees||0,long=p.side!=='short';return{be:(p.cost+(long?fee:-fee))/p.size,long,feeIn:fee>0}}
+function pxFit(){const n=Math.min(FIT,pxM.length);if(n<5)return null;const d=pxM.slice(-n),k0=d[d.length-1][0];let sx=0,sy=0,sxx=0,sxy=0;for(const[k,v]of d){const t=k-k0;sx+=t;sy+=v;sxx+=t*t;sxy+=t*v}const sl=(n*sxy-sx*sy)/(n*sxx-sx*sx||1),ic=(sy-sl*sx)/n;let r2=0;for(let i=1;i<d.length;i++){const q=d[i][1]-d[i-1][1];r2+=q*q}const sd=Math.sqrt(r2/Math.max(1,d.length-1));return{sl,ic,sd,n}}
+function drawPx(){const m=midP();if(!m||pxSym!==sym)return;const k=Date.now()/60000|0,L=pxM[pxM.length-1];if(L&&L[0]===k)L[1]=m;else{pxM.push([k,m]);if(pxM.length>PXW+5)pxM.shift()}
+ const P=prec[sym]||{p:5},[x,w,h]=cv('pxc');x.fillStyle='#0b0911';x.fillRect(0,0,w,h);const f=pxFit(),B=pxBE(),pad=16,R=110,cw=(w-R)/(PXW+HZ),X=kk=>(PXW+(kk-k))*cw;
+ let lo=Infinity,hi=-Infinity;for(const[,v]of pxM){lo=Math.min(lo,v);hi=Math.max(hi,v)}
+ let p15,p30,s15,s30;if(f){p15=m+f.sl*15;p30=m+f.sl*30;s15=f.sd*Math.sqrt(15);s30=f.sd*Math.sqrt(30);lo=Math.min(lo,p30-s30,p15-s15);hi=Math.max(hi,p30+s30,p15+s15)}
+ const span=hi-lo||m*.001;let beOn=false;if(B&&B.be>lo-span*1.5&&B.be<hi+span*1.5){lo=Math.min(lo,B.be);hi=Math.max(hi,B.be);beOn=true}
+ const sp=(hi-lo)*.08||m*.0005;lo-=sp;hi+=sp;const Y=v=>pad+(hi-v)/(hi-lo)*(h-pad*2);
+ x.font='10px Consolas';x.fillStyle='#8a82a3';x.textAlign='left';for(let i=0;i<=3;i++){const v=lo+(hi-lo)*i/3,y=Y(v);x.strokeStyle='rgba(138,130,163,.12)';x.beginPath();x.moveTo(0,y);x.lineTo(w-R,y);x.stroke();x.fillText(fmt(v,P.p),2,y-2)}
+ const xn=X(k);x.strokeStyle='rgba(169,112,255,.35)';x.setLineDash([2,3]);x.beginPath();x.moveTo(xn,0);x.lineTo(xn,h);x.stroke();x.setLineDash([]);x.textAlign='center';x.fillStyle='#8a82a3';for(const t of[-60,-30,15,30])x.fillText((t>0?'+':'')+t+'m',X(k+t),h-3);x.fillText('now',xn,h-3);
+ // price line
+ x.strokeStyle='#d9d3ee';x.lineWidth=1.6;x.beginPath();pxM.forEach(([kk,v],i)=>{const px=X(kk),py=Y(v);i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();x.lineWidth=1;
+ let note='';if(f){const up=f.sl>=0,col=up?'35,209,139':'255,77,109';x.fillStyle=`rgba(${col},.13)`;x.beginPath();x.moveTo(xn,Y(m));x.lineTo(X(k+15),Y(p15+s15));x.lineTo(X(k+30),Y(p30+s30));x.lineTo(X(k+30),Y(p30-s30));x.lineTo(X(k+15),Y(p15-s15));x.closePath();x.fill();
+  x.strokeStyle=`rgb(${col})`;x.lineWidth=2;x.setLineDash([7,5]);x.beginPath();x.moveTo(xn,Y(m));x.lineTo(X(k+30),Y(p30));x.stroke();x.setLineDash([]);x.lineWidth=1;x.fillStyle=`rgb(${col})`;for(const[t,v]of[[15,p15],[30,p30]]){x.beginPath();x.arc(X(k+t),Y(v),3,0,7);x.fill();x.textAlign='center';x.font='bold 10px Consolas';x.fillText(fmt(v,P.p),X(k+t),Y(v)-(up?8:-14))}
+  x.font='10px Consolas';x.textAlign='left';x.fillText(`TREND PROJECTION · not a prediction`,xn+6,h-16);
+  note=`Where it's going (if the last ${f.n}m pace holds): ${up?'▲':'▼'} ${fmt(p15,P.p)} at +15m, ${fmt(p30,P.p)} at +30m (${(f.sl/m*100*60).toFixed(2)}%/hr, band ±1σ of 1m moves). ${up?'GOOD':'BAD'} FOR LONGS.`}
+ let tag='N';if(B){const d=(B.be-m)/m*100,above=B.long?m>=B.be:m<=B.be,col=above?'#23d18b':m<B.be*0.99?'#ff4d6d':'#ffb020',lab=`BREAKEVEN ${fmt(B.be,P.p)} · ${d>=0?'+':''}${d.toFixed(2)}% away${B.feeIn?'':' · fees n/a'}`;tag=above?'G':'B';
+  let hitTxt='';if(f){const gap=B.be-m;if(above){const t=f.sl&&Math.sign(f.sl)===Math.sign(gap)?gap/f.sl:Infinity;hitTxt=t<=HZ?`⚠️ at this pace price falls back to BE in ~${Math.max(1,Math.round(t))}m`:'holding above BE at this pace'}else{const t=f.sl&&Math.sign(f.sl)===Math.sign(gap)?gap/f.sl:Infinity;hitTxt=t<=HZ?`🎯 hits BE in ~${Math.max(1,Math.round(t))}m at this pace`:'not reaching BE at this pace'}}
+  x.font='bold 11px Consolas';if(beOn){const y=Y(B.be);x.strokeStyle=col;x.lineWidth=2.5;x.shadowColor=col;x.shadowBlur=8;x.beginPath();x.moveTo(0,y);x.lineTo(w-R,y);x.stroke();x.shadowBlur=0;x.lineWidth=1;const tw=x.measureText(lab).width+12,ty=Math.min(Math.max(y,pad+2),h-pad-2),tx=Math.max(40,(w-R)/2-tw/2);x.fillStyle=col;x.fillRect(tx,ty-17,tw,15);x.fillStyle='#0b0911';x.textAlign='left';x.fillText(lab,tx+6,ty-6)}
+  else{const upE=B.be>m,y=upE?pad+4:h-pad-4,tw=x.measureText(lab).width+30,tx=(w-R)/2-tw/2;x.fillStyle=col;x.beginPath();x.roundRect?x.roundRect(tx,y-10,tw,20,10):x.rect(tx,y-10,tw,20);x.fill();x.fillStyle='#0b0911';x.textAlign='left';x.fillText((upE?'▲ ':'▼ ')+lab+' (off chart)',tx+8,y+4)}
+  note+=` · ${B.long?'Long':'Short'} BE ${fmt(B.be,P.p)} (avg entry${B.feeIn?' + fees Kraken reports; closing fee not incl.':'; fees not reported'}) — ${hitTxt}.`}
+ // current price tag
+ const yy=Y(m);x.fillStyle='#a970ff';x.shadowColor='#a970ff';x.shadowBlur=10;x.beginPath();x.roundRect?x.roundRect(w-R+4,yy-9,R-6,18,9):x.rect(w-R+4,yy-9,R-6,18);x.fill();x.shadowBlur=0;x.fillStyle='#fff';x.font='bold 11px Consolas';x.textAlign='center';x.fillText(fmt(m,P.p),w-R/2+1,yy+4);x.textAlign='left';
+ const wy=$('wyPx'),nt=(pxErr?pxErr+' · ':'')+(note||'Need 5+ minutes of data for a trend.');if(wy.textContent!==nt)wy.textContent=nt;const th=f?tagH(B?tag:(f.sl>=0?'G':'B')):'';if($('tgPx').innerHTML!==th)$('tgPx').innerHTML=th}
+pxSeed();setInterval(()=>{if(!document.hidden)drawPx()},1000);
 </script></body></html>
