@@ -118,7 +118,7 @@ header b{text-shadow:0 0 14px #a970ffaa}
 <div id="g">
 <div class="p" id="lad"><h3>Order book ladder <span id="tgSpr"></span></h3><div class="why2" id="wySpr"></div><div id="ladder" class="list"></div></div>
 <div class="p"><h3>Depth chart <span id="tgDepth"></span></h3><div class="why2" id="wyDepth"></div><canvas id="depth"></canvas></div>
-<div class="p"><h3>Imbalance (bid share) <span id="tgImb"></span><span id="imbNow" class="inow">--</span><span class="ctog" id="ctog"><b data-s="1" class="on">1s</b><b data-s="5">5s</b><b data-s="15">15s</b></span></h3><div class="why2" id="wyImb"></div><div class="gauges"><div>±0.5% <span id="i05"></span><div class="bar"><i id="b05"></i></div></div><div>±1% <span id="i1"></span><div class="bar"><i id="b1"></i></div></div></div><canvas id="imb"></canvas><h3 style="margin-top:6px">Cumulative volume delta <span id="cvdv" class="st"></span> <span id="tgCvd"></span></h3><div class="why2" id="wyCvd"></div><canvas id="cvd"></canvas></div>
+<div class="p"><h3>Imbalance (bid share · 1m candles) <span id="tgImb"></span><span id="imbNow" class="inow">--</span><span class="ctog" id="ctog"><b data-s="60" class="on">1m</b><b data-s="300">5m</b></span></h3><div class="why2" id="wyImb"></div><div class="gauges"><div>±0.5% <span id="i05"></span><div class="bar"><i id="b05"></i></div></div><div>±1% <span id="i1"></span><div class="bar"><i id="b1"></i></div></div></div><canvas id="imb"></canvas><h3 style="margin-top:6px">Cumulative volume delta <span id="cvdv" class="st"></span> <span id="tgCvd"></span></h3><div class="why2" id="wyCvd"></div><canvas id="cvd"></canvas></div>
 <div class="p" id="tape"><h3>Trade tape <span id="tgTape"></span></h3><div class="why2" id="wyTape"></div><div id="tp" class="list"></div></div>
 <div class="p" id="pos"><h3>My position <span class="st" style="text-transform:none;letter-spacing:0">· read-only via local helper</span> <span id="tgPos"></span></h3><div id="posb" class="list"><div class="st">Connecting to position helper…</div></div><div id="rx"><h4><span>⚛ LONG PRESSURE · 60s</span><span id="tgRx"></span></h4><canvas id="rxc"></canvas><div id="rxv" class="st">CHARGING…</div><div id="rxt"></div>
 <div id="rxl"><div style="display:flex;justify-content:space-between"><span class="st">☠ LIQ DISTANCE <span id="tgLiq"></span></span><span id="rxlt" class="st" style="text-align:right">—</span></div><div id="rxlb"><i></i></div></div></div></div>
@@ -496,24 +496,26 @@ $('sSkip').onclick=()=>{localStorage.kfSkip='1';$('ovSetup').classList.remove('o
 start();requestAnimationFrame(render);
 
 // ---- bid-share candles (real samples of ±0.5% book bid share) ----
-let cdl=[],cIv=+(localStorage.cIv||1),cLastS=0;
+let cIv=+(localStorage.cIv||60);if(cIv<60){cIv=60;localStorage.cIv=60}let cLastS=0,cLastD=0,cdl=(()=>{try{const a=JSON.parse(localStorage.kfCdl||'null');const k=Math.floor(Date.now()/1000/cIv);if(a&&a.iv===cIv&&a.c.length&&k-a.c[a.c.length-1].k<=90)return a.c.filter(c=>k-c.k<=90)}catch(e){}return[]})();
+function cSave(){try{localStorage.kfCdl=JSON.stringify({iv:cIv,c:cdl.slice(-90)})}catch(e){}}
 function candleSample(v){const now=performance.now();if(now-cLastS<100)return;cLastS=now;const k=Math.floor(Date.now()/1000/cIv);let c=cdl[cdl.length-1];
- if(!c||c.k!==k){c={k,o:c?c.c:v,h:v,l:v,c:v};if(!cdl.length)c.o=v;cdl.push(c);if(cdl.length>400)cdl.shift()}else{c.c=v;if(v>c.h)c.h=v;if(v<c.l)c.l=v}}
-function drawCandles(){const[x,w,h]=cv('imb');x.fillStyle='#0b0911';x.fillRect(0,0,w,h);if(!cdl.length)return;
- const cw=Math.max(6,Math.min(14,w/60)),n=Math.ceil(w/cw)+1,vis=cdl.slice(-n);let lo=1,hi=0;for(const c of vis){lo=Math.min(lo,c.l);hi=Math.max(hi,c.h)}lo=Math.min(lo,.5)-.02;hi=Math.max(hi,.5)+.02;lo=Math.max(0,lo);hi=Math.min(1,hi);
+ if(!c||c.k!==k){c={k,o:c?c.c:v,h:v,l:v,c:v};if(!cdl.length)c.o=v;cdl.push(c);if(cdl.length>120)cdl.shift();cSave()}else{c.c=v;if(v>c.h)c.h=v;if(v<c.l)c.l=v}}
+function drawCandles(){const nw=performance.now();if(nw-cLastD<250)return;cLastD=nw;const[x,w,h]=cv('imb');x.fillStyle='#0b0911';x.fillRect(0,0,w,h);if(!cdl.length)return;
+ const cw=Math.max(5,Math.min(16,(w-60)/60)),n=Math.ceil(w/cw)+1,vis=cdl.slice(-n);let lo=1,hi=0;for(const c of vis){lo=Math.min(lo,c.l);hi=Math.max(hi,c.h)}lo=Math.min(lo,.5)-.02;hi=Math.max(hi,.5)+.02;lo=Math.max(0,lo);hi=Math.min(1,hi);
  const pad=14,Y=v=>pad+(hi-v)/(hi-lo||1)*(h-pad*2),frac=((Date.now()/1000/cIv)%1),off=frac*cw;
  // zones
  const y5=Y(.5);let g=x.createLinearGradient(0,0,0,y5);g.addColorStop(0,'rgba(35,209,139,.10)');g.addColorStop(1,'rgba(35,209,139,0)');x.fillStyle=g;x.fillRect(0,0,w,y5);
  g=x.createLinearGradient(0,y5,0,h);g.addColorStop(0,'rgba(255,77,109,0)');g.addColorStop(1,'rgba(255,77,109,.10)');x.fillStyle=g;x.fillRect(0,y5,w,h-y5);
  x.font='10px Consolas';x.textAlign='left';for(const lv of[.42,.58]){if(lv<lo||lv>hi)continue;const y=Y(lv);x.strokeStyle='rgba(138,130,163,.25)';x.setLineDash([2,4]);x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke();x.fillStyle='#8a82a3';x.fillText(Math.round(lv*100)+'%',3,y-2)}
  x.setLineDash([6,4]);x.strokeStyle='#a970ffaa';x.lineWidth=1.2;x.shadowColor='#a970ff';x.shadowBlur=6;x.beginPath();x.moveTo(0,y5);x.lineTo(w,y5);x.stroke();x.setLineDash([]);x.shadowBlur=0;x.fillStyle='#a970ff';x.fillText('50%',3,y5-3);
- vis.forEach((c,i)=>{const cx=w-60-(vis.length-1-i)*cw-off+cw/2;if(cx<-cw)return;const up=c.c>=c.o,col=up?'#23d18b':'#ff4d6d',last=i===vis.length-1;
+ x.fillStyle='#8a82a3';x.font='9px Consolas';x.textAlign='center';for(let m=15;m*cw<w-60;m+=15){const tx=w-60-m*cw-off+cw/2;x.fillText('-'+m*cIv/60+'m',tx,h-2)}x.textAlign='left';
+ const kN=Math.floor(Date.now()/1000/cIv);vis.forEach((c,i)=>{const cx=w-60-(kN-c.k)*cw-off+cw/2;if(cx<-cw)return;const up=c.c>=c.o,col=up?'#23d18b':'#ff4d6d',last=i===vis.length-1;
   x.strokeStyle=col;x.fillStyle=col;x.lineWidth=1;x.shadowColor=col;x.shadowBlur=last?14:0;x.beginPath();x.moveTo(cx,Y(c.h));x.lineTo(cx,Y(c.l));x.stroke();
   const t=Math.min(Y(c.o),Y(c.c)),bh=Math.max(1.5,Math.abs(Y(c.o)-Y(c.c)));x.globalAlpha=last?1:.85;x.fillRect(cx-cw*.35,t,cw*.7,bh);x.globalAlpha=1});x.shadowBlur=0;
  const L=cdl[cdl.length-1],v=L.c,yy=Y(v),col=v>=.58?'#23d18b':v<=.42?'#ff4d6d':'#b9b2cc';
  x.strokeStyle=col+'88';x.setLineDash([1,3]);x.beginPath();x.moveTo(0,yy);x.lineTo(w-56,yy);x.stroke();x.setLineDash([]);
  x.fillStyle=col;x.shadowColor=col;x.shadowBlur=10;x.beginPath();x.roundRect?x.roundRect(w-56,yy-9,54,18,9):x.rect(w-56,yy-9,54,18);x.fill();x.shadowBlur=0;x.fillStyle='#0b0911';x.font='bold 11px Consolas';x.textAlign='center';x.fillText((v*100).toFixed(1)+'%',w-29,yy+4);x.textAlign='left';
  const e=$('imbNow');if(e){e.textContent=(v*100).toFixed(1)+'% '+(v>=.58?'▲':v<=.42?'▼':'•');e.style.color=col;e.style.textShadow='0 0 8px '+col}}
-document.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.closest('#ctog b');if(!b)return;cIv=+b.dataset.s;localStorage.cIv=cIv;cdl=[];document.querySelectorAll('#ctog b').forEach(z=>z.classList.toggle('on',z===b))});
+document.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.closest('#ctog b');if(!b)return;cIv=+b.dataset.s;localStorage.cIv=cIv;cdl=[];cLastD=0;cSave();document.querySelectorAll('#ctog b').forEach(z=>z.classList.toggle('on',z===b))});
 addEventListener('DOMContentLoaded',()=>document.querySelectorAll('#ctog b').forEach(z=>z.classList.toggle('on',+z.dataset.s===cIv)));
 </script></body></html>
